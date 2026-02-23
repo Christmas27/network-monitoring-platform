@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  router1:
+    image: frrouting/frr:latest
+    container_name: frr-router1
+    hostname: router1
+    privileged: true
+    ports:
+      - "2601:161"   # SNMP
+      - "8001:8080"  # Web interface (if available)
+    volumes:
+      - ./frr-configs/router1:/etc/frr
+    networks:
+      lab_network:
+        ipv4_address: 10.10.1.10
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+
+  router2:
+    image: frrouting/frr:latest
+    container_name: frr-router2
+    hostname: router2
+    privileged: true
+    ports:
+      - "2602:161"   # SNMP
+      - "8002:8080"  # Web interface
+    volumes:
+      - ./frr-configs/router2:/etc/frr
+    networks:
+      lab_network:
+        ipv4_address: 10.10.1.20
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+
+networks:
+  lab_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.1.0/24

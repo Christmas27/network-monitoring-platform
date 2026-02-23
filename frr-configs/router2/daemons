@@ -1,0 +1,5 @@
+zebra=yes
+ospfd=yes
+vtysh_enable=yes
+zebra_options="--daemon"
+ospfd_options="--daemon"

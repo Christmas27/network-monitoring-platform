@@ -1,0 +1,19 @@
+# Core framework - pin major version
+fastapi>=0.100.0,<1.0.0
+uvicorn>=0.20.0,<1.0.0
+
+# Templates & utilities - flexible
+jinja2>=3.0.0
+python-multipart>=0.0.5
+
+# Docker integration - NEW
+docker>=6.0.0              # Python Docker SDK for container management
+
+# Networking libraries - be careful with versions
+pysnmp>=4.4.12,<5.0.0      # SNMP can be finicky
+requests>=2.25.0
+aiohttp>=3.8.0             # For async HTTP calls
+urllib3>=1.26.0            # HTTP client library
+
+# Development tools
+pytest>=7.0.0              # For testing
