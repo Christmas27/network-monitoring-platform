@@ -22,7 +22,7 @@ A modern network monitoring platform built with FastAPI and FRR (Free Range Rout
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/network-monitoring-platform.git
+   git clone https://github.com/Christmas27/network-monitoring-platform.git
    cd network-monitoring-platform
    ```
 
