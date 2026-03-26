@@ -1,0 +1,61 @@
+---
+- name: Provision Interface on FRR Device
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: false
+  vars:
+    container_name: "{{ device_container }}"
+    interface_name: "{{ interface }}"
+    interface_ip: "{{ ip_cidr }}"
+    interface_desc: "{{ if_description | default('') }}"
+    static_route_prefix: "{{ route_prefix | default('') }}"
+    static_route_next_hop: "{{ route_next_hop | default('') }}"
+
+  tasks:
+    - name: Validate interface exists on device
+      shell: docker exec {{ container_name }} ip link show {{ interface_name }}
+      register: iface_exists
+      failed_when: iface_exists.rc != 0
+
+    - name: Configure interface IP and admin state
+      shell: |
+        docker exec {{ container_name }} vtysh -c "
+        configure terminal
+        interface {{ interface_name }}
+        no shutdown
+        ip address {{ interface_ip }}
+        {% if interface_desc|length > 0 %}
+        description {{ interface_desc }}
+        {% endif %}
+        exit
+        "
+      register: config_result
+
+    - name: Configure static route if requested
+      shell: |
+        docker exec {{ container_name }} vtysh -c "
+        configure terminal
+        ip route {{ static_route_prefix }} {{ static_route_next_hop }}
+        "
+      when:
+        - static_route_prefix | length > 0
+        - static_route_next_hop | length > 0
+      register: route_result
+
+    - name: Verify interface config
+      shell: docker exec {{ container_name }} vtysh -c "show interface {{ interface_name }}"
+      register: verify_iface
+      changed_when: false
+
+    - name: Verify route config
+      shell: docker exec {{ container_name }} vtysh -c "show ip route"
+      register: verify_route
+      changed_when: false
+
+    - name: Display verification snapshot
+      debug:
+        msg: |
+          Interface verification:
+          {{ verify_iface.stdout_lines[:12] | join('\n') if verify_iface.stdout_lines else 'No output' }}
+
+          Route verification (first lines):
+          {{ verify_route.stdout_lines[:12] | join('\n') if verify_route.stdout_lines else 'No output' }}

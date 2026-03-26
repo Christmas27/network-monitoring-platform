@@ -1,0 +1,59 @@
+---
+- name: Interface Control on FRR Device 
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: false
+  vars:
+    container_name: "{{ device_container }}"
+    interface_name: "{{ interface }}"
+    action: "{{ operation }}"  # 'enable', 'disable', 'reset'
+    description: "{{ interface_description | default('') }}"
+    
+  tasks:
+    - name: "{{ action|title }} interface {{ interface_name }} on {{ container_name }}"
+      shell: |
+        docker exec {{ container_name }} vtysh -c "
+        configure terminal
+        interface {{ interface_name }}
+        {% if action == 'disable' %}
+        shutdown
+        {% elif action == 'enable' %}
+        no shutdown
+        {% elif action == 'reset' %}
+        no shutdown
+        no description
+        {% endif %}
+        {% if description %}
+        description {{ description }}
+        {% endif %}
+        exit
+        "
+      register: interface_result
+      
+    - name: Show interface control result
+      debug:
+        msg: "Interface {{ interface_name }} {{ action }} completed on {{ container_name }}"
+        
+    - name: Wait for interface state change
+      pause:
+        seconds: 2
+        
+    - name: Verify interface status
+      shell: |
+        docker exec {{ container_name }} vtysh -c "show interface {{ interface_name }}"
+      register: verify_result
+      ignore_errors: yes
+      
+    - name: Display verification result
+      debug:
+        msg: |
+          Interface {{ interface_name }} verification:
+          {{ verify_result.stdout_lines[:5] | join('\n') if verify_result.stdout_lines else 'Could not verify interface status' }}
+          
+    - name: Get current interface brief
+      shell: |
+        docker exec {{ container_name }} vtysh -c "show interface brief"
+      register: interface_brief
+      
+    - name: Display current interface status
+      debug:
+        msg: "Current interfaces: {{ interface_brief.stdout }}"

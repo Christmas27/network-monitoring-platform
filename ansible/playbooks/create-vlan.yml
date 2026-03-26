@@ -1,0 +1,33 @@
+---
+- name: Create VLAN on FRR Switch (No Save)
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: false
+  vars:
+    container_name: "{{ switch_container }}"
+    vlan_id: "{{ vlan_number }}"
+    vlan_name: "{{ vlan_name | default('VLAN_' + vlan_number|string) }}"
+    
+  tasks:
+    - name: Create VLAN {{ vlan_id }} on {{ container_name }}
+      shell: |
+        docker exec {{ container_name }} vtysh -c "
+        configure terminal
+        interface vlan{{ vlan_id }}
+        description {{ vlan_name }}
+        no shutdown
+        exit
+        "
+      register: vlan_result
+      
+    - name: Show VLAN creation result
+      debug:
+        msg: "VLAN {{ vlan_id }} created on {{ container_name }} (temporary - not saved to startup config)"
+        
+    - name: Verify VLAN exists in running config
+      shell: |
+        docker exec {{ container_name }} vtysh -c "show interface brief"
+      register: verify_result
+      
+    - name: Display current interfaces
+      debug:
+        msg: "Current interfaces: {{ verify_result.stdout_lines | select('match', '.*vlan.*') | list }}"

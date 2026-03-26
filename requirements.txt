@@ -16,4 +16,4 @@ aiohttp>=3.8.0             # For async HTTP calls
 urllib3>=1.26.0            # HTTP client library
 
 # Development tools
-pytest>=7.0.0              # For testing
+pytest>=7.0.0              # For testingansible>=6.0.0
