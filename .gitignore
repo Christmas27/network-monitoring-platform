@@ -47,6 +47,17 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+.pytest_cache
 
 # Project specific
 Project Network Monitoring & Automa.txt
+testing.md
+nm-spot-key.pem
+tests/
+hello.py
+GIT.md
+deploy.sh
+deploy manual.md
+error.txt
+PROJECT_CONTEXT.md
+Future Develop Plan.md
