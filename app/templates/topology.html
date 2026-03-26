@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Topology</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/dark-mode.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Dark Mode Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Network Topology</h1>
+        
+        <!-- Navigation -->
+        <div class="mb-6 text-center">
+            <a href="/" class="text-blue-600 hover:text-blue-800 mr-4">← Dashboard</a>
+            <a href="/topology" class="text-blue-600 hover:text-blue-800 font-semibold">Topology</a>
+        </div>
+        
+        <!-- Topology Diagram -->
+        <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+            <div id="topology-container" style="min-height: 400px; position: relative; background: var(--bg-card);">
+                <!-- SVG Network Diagram -->
+                <svg width="100%" height="400" viewBox="0 0 800 400" style="border: 1px solid var(--border-color); border-radius: 8px;">
+                    <!-- Connection Line -->
+                    <line x1="200" y1="200" x2="600" y2="200" stroke="#3b82f6" stroke-width="3" stroke-dasharray="10,5"/>
+                    
+                    <!-- Router 1 -->
+                    <g id="router1" cursor="pointer" onclick="viewDevice(1)">
+                        <circle cx="200" cy="200" r="50" fill="#10b981" stroke="#065f46" stroke-width="3"/>
+                        <text x="200" y="195" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Router 1</text>
+                        <text x="200" y="210" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10">10.10.1.10</text>
+                        
+                        <!-- Status indicator -->
+                        <circle id="r1-status" cx="180" cy="170" r="8" fill="#22c55e"/>
+                        
+                        <!-- Device label -->
+                        <text x="200" y="270" text-anchor="middle" fill="var(--text-primary)" font-family="Arial, sans-serif" font-size="14" font-weight="bold">FRR-Router-01</text>
+                    </g>
+                    
+                    <!-- Router 2 -->
+                    <g id="router2" cursor="pointer" onclick="viewDevice(2)">
+                        <circle cx="600" cy="200" r="50" fill="#10b981" stroke="#065f46" stroke-width="3"/>
+                        <text x="600" y="195" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Router 2</text>
+                        <text x="600" y="210" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10">10.10.1.20</text>
+                        
+                        <!-- Status indicator -->
+                        <circle id="r2-status" cx="620" cy="170" r="8" fill="#22c55e"/>
+                        
+                        <!-- Device label -->
+                        <text x="600" y="270" text-anchor="middle" fill="var(--text-primary)" font-family="Arial, sans-serif" font-size="14" font-weight="bold">FRR-Router-02</text>
+                    </g>
+                    
+                    <!-- Connection Label -->
+                    <rect x="360" y="180" width="80" height="25" fill="var(--bg-card)" stroke="var(--border-color)" rx="5"/>
+                    <text x="400" y="197" text-anchor="middle" fill="var(--text-primary)" font-family="Arial, sans-serif" font-size="12">OSPF Area 0</text>
+                    
+                    <!-- Legend -->
+                    <g transform="translate(20, 20)">
+                        <text x="0" y="0" fill="var(--text-primary)" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Legend:</text>
+                        <circle cx="10" cy="25" r="8" fill="#22c55e"/>
+                        <text x="25" y="30" fill="var(--text-secondary)" font-family="Arial, sans-serif" font-size="12">Device Online</text>
+                        <circle cx="10" cy="45" r="8" fill="#ef4444"/>
+                        <text x="25" y="50" fill="var(--text-secondary)" font-family="Arial, sans-serif" font-size="12">Device Offline</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+        
+        <!-- Real-time Status -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Real-time Status</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 border border-gray-200 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">Router 1 Status</h3>
+                    <div id="r1-info">Loading...</div>
+                </div>
+                <div class="p-4 border border-gray-200 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">Router 2 Status</h3>
+                    <div id="r2-info">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
+    <script>
+        function viewDevice(deviceId) {
+            window.location.href = `/devices/${deviceId}`;
+        }
+        
+        // Load real-time status
+        async function updateTopologyStatus() {
+            try {
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+                
+                data.devices.forEach(device => {
+                    const statusColor = device.status === 'UP' ? '#22c55e' : '#ef4444';
+                    
+                    // Update SVG status indicators
+                    const statusCircle = document.getElementById(`r${device.id}-status`);
+                    if (statusCircle) {
+                        statusCircle.setAttribute('fill', statusColor);
+                    }
+                    
+                    // Update status info
+                    const infoDiv = document.getElementById(`r${device.id}-info`);
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `
+                            <p><strong>Status:</strong> <span style="color: ${statusColor};">${device.status}</span></p>
+                            <p><strong>IP:</strong> ${device.ip}</p>
+                            <p><strong>OSPF Neighbors:</strong> ${device.ospf_neighbors || 0}</p>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.error('Error updating topology status:', error);
+            }
+        }
+        
+        // Update status every 5 seconds
+        updateTopologyStatus();
+        setInterval(updateTopologyStatus, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+---
+- name: Network Connectivity and Health Testing
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: false
+  vars:
+    test_device: "{{ device_container }}"
+    test_type: "{{ test_operation | default('full') }}"
+    target_devices: "{{ test_targets | default([]) }}"
+    
+  tasks:
+    - name: "Network Testing on {{ test_device }}"
+      debug:
+        msg: "Starting {{ test_type }} network tests on {{ test_device }}"
+    
+    # === CONNECTIVITY TESTS ===
+    - name: Test connectivity to other devices
+      shell: |
+        docker exec {{ test_device }} ping -c 3 -W 2 {{ item.ip }}
+      loop:
+        - { name: "router1", ip: "10.10.1.10" }
+        - { name: "router2", ip: "10.10.1.20" }  
+        - { name: "switch1", ip: "10.10.1.30" }
+        - { name: "switch2", ip: "10.10.1.40" }
+      register: ping_results
+      ignore_errors: yes
+      when: test_type in ['full', 'ping']
+      
+    - name: Display connectivity test results
+      debug:
+        msg: |
+          📡 CONNECTIVITY TEST RESULTS:
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          {% for result in ping_results.results %}
+          • {{ result.item.name }} ({{ result.item.ip }}): {% if result.rc == 0 %}✅ PASS{% else %}❌ FAIL{% endif %}
+          {% endfor %}
+      when: 
+        - test_type in ['full', 'ping']
+        - ping_results is defined
+        - ping_results.results is defined
+        - ping_results.results | length > 0
+      
+    # === INTERFACE HEALTH CHECKS ===
+    - name: Check interface status
+      shell: |
+        docker exec {{ test_device }} vtysh -c "show interface brief"
+      register: interface_status
+      ignore_errors: yes
+      when: test_type in ['full', 'interfaces']
+      
+    - name: Display interface health
+      debug:
+        msg: |
+          Interface Status for {{ test_device }}:
+          {{ interface_status.stdout | default('No interface data available') }}
+      when: 
+        - interface_status is defined
+        - interface_status.stdout is defined
+      
+    # === OSPF NEIGHBOR VALIDATION ===
+    - name: Check OSPF neighbors (routers only)
+      shell: |
+        docker exec {{ test_device }} vtysh -c "show ip ospf neighbor"
+      register: ospf_neighbors
+      ignore_errors: yes
+      when: 
+        - test_type in ['full', 'ospf']
+        - "'router' in test_device"
+        
+    - name: Display OSPF neighbor status
+      debug:
+        msg: |
+          OSPF Neighbors for {{ test_device }}:
+          {% if ospf_neighbors.stdout %}
+          {{ ospf_neighbors.stdout }}
+          {% else %}
+          No OSPF neighbors found or OSPF not running
+          {% endif %}
+      when: 
+        - ospf_neighbors is defined
+        - ospf_neighbors.stdout is defined
+      
+    # === ROUTING TABLE VERIFICATION ===
+    - name: Check routing table
+      shell: |
+        docker exec {{ test_device }} vtysh -c "show ip route"
+      register: routing_table
+      ignore_errors: yes
+      when: test_type in ['full', 'routes']
+      
+    - name: Display routing information
+      debug:
+        msg: |
+          Routing Table for {{ test_device }}:
+          {{ routing_table.stdout_lines[:10] | join('\n') if routing_table.stdout_lines else 'No routing data available' }}
+          {% if routing_table.stdout_lines and routing_table.stdout_lines | length > 10 %}
+          ... (truncated, {{ routing_table.stdout_lines | length }} total routes)
+          {% endif %}
+      when: 
+        - routing_table is defined
+        - routing_table.stdout_lines is defined
+      
+    # === GENERATE TEST SUMMARY ===
+    - name: Generate test summary
+      debug:
+        msg: |
+          🔍 NETWORK TEST SUMMARY for {{ test_device }}:
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          Test Type: {{ test_type }}
+          Timestamp: {{ ansible_date_time.iso8601 | default('N/A') }}
+
+          {% if test_type in ['full', 'ping'] and ping_results is defined and ping_results.results is defined %}
+          Connectivity Tests:
+          {% for result in ping_results.results %}
+          • {{ result.item.name }}: {{ '✅ PASS' if (result.rc | default(1)) == 0 else '❌ FAIL/SKIPPED' }}
+          {% endfor %}
+          {% endif %}
+
+          {% if interface_status is defined and interface_status.stdout is defined %}
+          Interface Status: ✅ Retrieved
+          {% endif %}
+
+          {% if ospf_neighbors is defined and ospf_neighbors.stdout is defined %}
+          OSPF Status: {{ '✅ Active' if ospf_neighbors.stdout else '⚠️ Inactive' }}
+          {% endif %}
+
+          {% if routing_table is defined and routing_table.stdout_lines is defined %}
+          Routing Table: ✅ Retrieved ({{ routing_table.stdout_lines | length }} routes)
+          {% endif %}

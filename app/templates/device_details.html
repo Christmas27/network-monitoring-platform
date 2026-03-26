@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Topology</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/dark-mode.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- Force dark mode compatibility -->
+    <style>
+        .bg-gray-100 { background-color: var(--bg-primary) !important; }
+        .bg-white { background-color: var(--bg-card) !important; }
+        .text-gray-800 { color: var(--text-primary) !important; }
+        .text-gray-600 { color: var(--text-secondary) !important; }
+        .border-gray-200 { border-color: var(--border-color) !important; }
+        .shadow-md { box-shadow: 0 4px 6px var(--shadow) !important; }
+        
+        /* SVG text color fix */
+        svg text { fill: var(--text-primary) !important; }
+        
+        /* VLAN status styling */
+        .vlan-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .vlan-status[data-status="up"] {
+            background: #065f46;
+            color: #10b981;
+        }
+        
+        .vlan-status[data-status="down"] {
+            background: #7f1d1d;
+            color: #ef4444;
+        }
+        
+        /* Delete button styling */
+        .delete-vlan-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .delete-vlan-btn:hover {
+            background: #b91c1c;
+        }
+        
+        /* Port card styling */
+        .port-card {
+            background: #374151;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444; /* Default */
+        }
+        
+        .port-card[data-status="up"] {
+            border-left-color: #10b981;
+        }
+        
+        .port-card[data-status="down"] {
+            border-left-color: #ef4444;
+        }
+        
+        /* Port status styling */
+        .port-status[data-status="up"] {
+            color: #10b981;
+        }
+        
+        .port-status[data-status="down"] {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Dark Mode Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Network Topology</h1>
+        
+        <!-- Navigation -->
+        <div class="mb-6">
+            <a href="/" class="text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
+        </div>
+        
+        <!-- Device Status Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Device Status</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="text-gray-600">Status:</span>
+                    <span class="ml-2 px-2 py-1 rounded text-sm bg-green-100 text-green-800">UP</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Type:</span>
+                    <span class="ml-2">FRR Container</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Configuration Display -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Running Configuration</h2>
+            <pre class="bg-gray-900 text-green-400 p-4 rounded overflow-x-auto text-sm" id="config-display">
+                Loading configuration...
+            </pre>
+        </div>
+        
+        <!-- Interfaces Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Interfaces</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Interface</th>
+                            <th class="px-4 py-2 text-left">IP Address</th>
+                            <th class="px-4 py-2 text-left">Status</th>
+                            <th class="px-4 py-2 text-left">OSPF Area</th>
+                        </tr>
+                    </thead>
+                    <tbody id="interfaces-table">
+                        <tr>
+                            <td class="px-4 py-2" colspan="4">Loading interfaces...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Routing Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Routing Table</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Network</th>
+                            <th class="px-4 py-2 text-left">Type</th>
+                            <th class="px-4 py-2 text-left">Selected</th>
+                            <th class="px-4 py-2 text-left">Active</th>
+                        </tr>
+                    </thead>
+                    <tbody id="routes-table">
+                        <tr>
+                            <td class="px-4 py-2" colspan="4">Loading routes...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Switch Details -->
+        {% if device.is_switch %}
+        <div class="switch-details" style="
+            background: var(--card-bg-dark);
+            color: var(--text-primary);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--card-border);
+        ">
+            <h3 style="color: var(--text-primary); margin-bottom: 20px;">
+                🔗 Switch Information
+            </h3>
+            
+            <!-- Switch Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 15px; background: #374151; border-radius: 8px;">
+                    <div style="color: var(--text-secondary); font-size: 0.875rem;">Physical Ports</div>
+                    <div style="color: var(--primary-blue); font-size: 1.5rem; font-weight: bold;">
+                        {{ device.switch_info.port_count if device.switch_info else 0 }}
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #374151; border-radius: 8px;">
+                    <div style="color: var(--text-secondary); font-size: 0.875rem;">VLANs Configured</div>
+                    <div style="color: var(--success-green); font-size: 1.5rem; font-weight: bold;">
+                        {{ device.vlans|length }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- VLAN Table -->
+            <div style="margin-bottom: 30px;">
+                <h4 style="color: var(--text-primary); margin-bottom: 15px;">📋 VLAN Configuration</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; background: var(--bg-primary);">
+                        <thead>
+                            <tr style="background: #4b5563;">
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">VLAN ID</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">Interface</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">Status</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">Description</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">IP Address</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vlan in device.vlans %}
+                            <tr style="border-bottom: 1px solid var(--card-border);">
+                                <td style="padding: 12px; color: var(--primary-blue); font-weight: bold;">{{ vlan.vlan_id }}</td>
+                                <td style="padding: 12px; color: var(--text-primary); font-family: monospace;">{{ vlan.interface }}</td>
+                                <td style="padding: 12px;">
+                                    <span class="vlan-status" data-status="{{ vlan.status }}">{{ vlan.status.upper() }}</span>
+                                </td>
+                                <td style="padding: 12px; color: var(--text-secondary);">{{ vlan.description }}</td>
+                                <td style="padding: 12px; color: var(--text-primary); font-family: monospace;">{% if vlan.addresses != 'No IP assigned' %}{{ vlan.addresses }}{% else %}-{% endif %}</td>
+                                <td style="padding: 12px;">
+                                    <button onclick="deleteVlan(this)" 
+                                        data-device-id="{{ device.id }}" 
+                                        data-vlan-id="{{ vlan.vlan_id }}" 
+                                        class="delete-vlan-btn">Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not device.vlans %}
+                            <tr>
+                                <td colspan="6" style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                                    No VLANs configured
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Physical Ports -->
+            <div>
+                <h4 style="color: var(--text-primary); margin-bottom: 15px;">🔌 Physical Port Status</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    {% if device.switch_info and device.switch_info.physical_ports %}
+                    {% for port in device.switch_info.physical_ports %}
+                    <div class="port-card" data-status="{{ port.status }}">
+                        <div style="color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">{{ port.name }}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                            Status: <span class="port-status" data-status="{{ port.status }}">{{ port.status.upper() }}</span>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">VRF: {{ port.vrf }}</div>
+                        {% if port.addresses %}
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">IP: {{ port.addresses }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div style="color: var(--text-secondary); text-align: center; grid-column: 1/-1;">
+                        No physical port information available
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add VLAN Management Actions -->
+        <script>
+        function deleteVlan(button) {
+            const deviceId = button.getAttribute('data-device-id');
+            const vlanId = button.getAttribute('data-vlan-id');
+            
+            if (confirm(`Delete VLAN ${vlanId}?`)) {
+                fetch(`/api/devices/${deviceId}/vlans/${vlanId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('VLAN deleted successfully', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification('Failed to delete VLAN', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error deleting VLAN', 'error');
+                });
+            }
+        }
+
+        function showNotification(message, type) {
+            // Simple notification function
+            const notification = document.createElement('div');
+            
+            // Set styles individually (avoids template literal parsing issues)
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.padding = '15px 20px';
+            notification.style.background = type === 'success' ? '#10b981' : '#ef4444';
+            notification.style.color = 'white';
+            notification.style.borderRadius = '8px';
+            notification.style.zIndex = '10000';
+            notification.style.fontWeight = '600';
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 3000);
+        }
+        </script>
+        {% endif %}
+    </div>
+    
+    <script>
+        // Load device data
+        const deviceId = "{{ device_id }}";
+        
+        // Load configuration
+        fetch(`/api/devices/${deviceId}/config`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.config && data.config.success) {
+                    document.getElementById('config-display').textContent = data.config.config;
+                }
+            })
+            .catch(error => {
+                document.getElementById('config-display').textContent = 'Error loading configuration';
+            });
+            
+        // Load interfaces
+        fetch(`/api/devices/${deviceId}/interfaces`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('interfaces-table');
+                tableBody.innerHTML = '';
+                
+                if (data.interfaces && data.interfaces.length > 0) {
+                    data.interfaces.forEach(interface => {
+                        const row = `
+                            <tr class="border-t">
+                                <td class="px-4 py-2">${interface.name}</td>
+                                <td class="px-4 py-2">${interface.ip_address}</td>
+                                <td class="px-4 py-2">
+                                    <span class="px-2 py-1 rounded text-sm ${interface.status === 'UP' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                        ${interface.status}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2">${interface.ospf_area}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td class="px-4 py-2" colspan="4">No interfaces found</td></tr>';
+                }
+            });
+
+        // Load routing table (NEW)
+        fetch(`/api/devices/${deviceId}/routes`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('routes-table');
+                tableBody.innerHTML = '';
+                
+                if (data.routing_table && data.routing_table.success && data.routing_table.routes.length > 0) {
+                    data.routing_table.routes.forEach(route => {
+                        const typeColor = route.type === 'Connected' ? 'bg-blue-100 text-blue-800' : 
+                                         route.type === 'OSPF' ? 'bg-green-100 text-green-800' : 
+                                         'bg-gray-100 text-gray-800';
+                        
+                        const row = `
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono text-sm">${route.network}</td>
+                                <td class="px-4 py-2">
+                                    <span class="px-2 py-1 rounded text-sm ${typeColor}">
+                                        ${route.type}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2">${route.selected ? '✅' : '❌'}</td>
+                                <td class="px-4 py-2">${route.active ? '✅' : '❌'}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td class="px-4 py-2" colspan="4">No routes found or routes unavailable</td></tr>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('routes-table').innerHTML = '<tr><td class="px-4 py-2" colspan="4">Error loading routing table</td></tr>';
+            });
+    </script>
+</body>
+</html>

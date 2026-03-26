@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/dark-mode.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Dark Mode Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 20px; color: var(--text-primary);">Network Monitoring Dashboard</h1>
+        
+        <!-- Add Navigation -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <a href="/" style="color: #3b82f6; text-decoration: none; margin: 0 15px; font-weight: 600;">Dashboard</a>
+            <a href="/topology" style="color: #3b82f6; text-decoration: none; margin: 0 15px; font-weight: 600;">🌐 Network Topology</a>
+        </div>
+        
+        <div id="devices-grid"></div>
+    </div>
+    
+    <script src="{{ url_for('static', path='/js/utils.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/notifications.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/device-management.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/topology.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
+    
+
+</body>
+</html>

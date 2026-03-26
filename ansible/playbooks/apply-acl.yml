@@ -1,0 +1,93 @@
+---
+- name: Apply nftables ACL on Linux data plane
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    container_name: "{{ device_container }}"
+    interface_name: "{{ interface }}"
+    acl_dir: "{{ direction }}"
+    acl_name_var: "{{ acl_name }}"
+    acl_rule_lines: "{{ acl_lines | default([]) }}"
+
+  tasks:
+    - name: Validate interface exists
+      shell: docker exec {{ container_name }} ip link show {{ interface_name }}
+      register: iface_exists
+      failed_when: iface_exists.rc != 0
+
+    - name: Validate nft command exists
+      shell: docker exec {{ container_name }} sh -lc "command -v nft"
+      register: nft_exists
+      failed_when: nft_exists.rc != 0
+
+    - name: Validate acl_lines input
+      fail:
+        msg: "acl_lines must be a non-empty list of nft rule fragments"
+      when: acl_rule_lines | length == 0
+
+    - name: Set chain and interface matcher by direction
+      set_fact:
+        acl_chain: "{{ 'input' if acl_dir == 'in' else 'output' }}"
+        iface_match: "{{ 'iifname ' ~ interface_name if acl_dir == 'in' else 'oifname ' ~ interface_name }}"
+        acl_tag: "nm_acl_{{ acl_name_var }}"
+
+    - name: Ensure nft table exists
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "nft list table inet nm_acl >/dev/null 2>&1 || nft add table inet nm_acl"
+      register: table_create
+      changed_when: false
+      failed_when: table_create.rc != 0
+
+    - name: Ensure input base chain exists
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "nft list chain inet nm_acl input >/dev/null 2>&1 || nft add chain inet nm_acl input '{ type filter hook input priority 0; policy accept; }'"
+      register: input_chain_create
+      changed_when: false
+      failed_when: input_chain_create.rc != 0
+
+    - name: Ensure output base chain exists
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "nft list chain inet nm_acl output >/dev/null 2>&1 || nft add chain inet nm_acl output '{ type filter hook output priority 0; policy accept; }'"
+      register: output_chain_create
+      changed_when: false
+      failed_when: output_chain_create.rc != 0
+
+    - name: Remove previous rules for this ACL tag (idempotent, Alpine-safe)
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "while true; do
+           h=$(nft -a list chain inet nm_acl {{ acl_chain }} | awk '/comment \"{{ acl_tag }}\"/{print $NF; exit}');
+           [ -z \"$h\" ] && break;
+           nft delete rule inet nm_acl {{ acl_chain }} handle $h || break;
+         done"
+      register: cleanup_rules
+      changed_when: false
+      failed_when: cleanup_rules.rc != 0
+
+    - name: Add ACL rules
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "nft add rule inet nm_acl {{ acl_chain }} {{ iface_match }} {{ item }} comment {{ acl_tag }}"
+      loop: "{{ acl_rule_lines }}"
+      register: rule_add
+
+    - name: Verify active ACL chain
+      shell: docker exec {{ container_name }} sh -lc "nft list chain inet nm_acl {{ acl_chain }}"
+      register: verify_acl
+      changed_when: false
+      failed_when: verify_acl.rc != 0
+
+    - name: Show ACL verification
+      debug:
+        msg: |
+          ACL {{ acl_name_var }} applied on {{ container_name }}
+          Direction: {{ acl_dir }}
+          Chain: {{ acl_chain }}
+          Interface: {{ interface_name }}
+
+          Active chain:
+          {{ verify_acl.stdout }}
