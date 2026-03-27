@@ -14,22 +14,7 @@ class AnsibleClient:
         self.playbook_path = self.project_root / "ansible" / "playbooks"
         self.inventory_path = self.project_root / "ansible" / "inventory" / "hosts.yml"
 
-    def _run_playbook_sync(self, playbook_name: str, variables: dict, timeout: int = 90) -> dict:
-        playbook = self.playbook_path / playbook_name
-        cmd = ["ansible-playbook", str(playbook), "-e", json.dumps(variables)]
-
-        if not playbook.exists():
-            return {
-                "success": False,
-                "return_code": None,
-                "stdout": "",
-                "stderr": "",
-                "command": " ".join(cmd),
-                "summary": {"status": "FAILED", "reason": "PLAYBOOK_NOT_FOUND"},
-                "error_type": "not_found",
-                "error_message": f"Playbook not found: {playbook}",
-            }
-
+    def _run_ansible_cmd_sync(self, cmd: list[str], timeout: int) -> dict:
         try:
             result = subprocess.run(
                 cmd,
@@ -76,6 +61,24 @@ class AnsibleClient:
                 "error_type": "execution_error",
                 "error_message": str(e),
             }
+
+    def _run_playbook_sync(self, playbook_name: str, variables: dict, timeout: int = 90) -> dict:
+        playbook = self.playbook_path / playbook_name
+        cmd = ["ansible-playbook", str(playbook), "-e", json.dumps(variables)]
+
+        if not playbook.exists():
+            return {
+                "success": False,
+                "return_code": None,
+                "stdout": "",
+                "stderr": "",
+                "command": " ".join(cmd),
+                "summary": {"status": "FAILED", "reason": "PLAYBOOK_NOT_FOUND"},
+                "error_type": "not_found",
+                "error_message": f"Playbook not found: {playbook}",
+            }
+
+        return self._run_ansible_cmd_sync(cmd, timeout)
 
     async def manage_interface(self, device_id: int, interface_name: str, action: str) -> Dict[str, Any]:
         device_mapping = {1: "router1", 2: "router2"}
@@ -131,60 +134,15 @@ class AnsibleClient:
             f"action={action}",
         ]
 
-        try:
-            result = subprocess.run(
-                cmd,
-                cwd=self.project_root,
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-
-            summary = self._extract_ansible_summary(result.stdout, result.stderr, result.returncode)
-
-            return {
-                "success": result.returncode == 0,
-                "return_code": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "command": " ".join(cmd),
-                "summary": summary,
-                "error_type": None if result.returncode == 0 else "execution_error",
-                "error_message": None if result.returncode == 0 else "Playbook execution failed",
-                "action": action,
-                "interface": interface_name,
-                "device_id": device_id,
-            }
-
-        except subprocess.TimeoutExpired as e:
-            return {
-                "success": False,
-                "return_code": None,
-                "stdout": e.stdout or "",
-                "stderr": e.stderr or "",
-                "command": " ".join(cmd),
-                "summary": {"status": "FAILED", "reason": "TIMEOUT"},
-                "error_type": "timeout",
-                "error_message": "Interface operation timed out",
-                "action": action,
-                "interface": interface_name,
-                "device_id": device_id,
-            }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "return_code": None,
-                "stdout": "",
-                "stderr": "",
-                "command": " ".join(cmd),
-                "summary": {"status": "FAILED", "reason": "EXCEPTION"},
-                "error_type": "execution_error",
-                "error_message": str(e),
-                "action": action,
-                "interface": interface_name,
-                "device_id": device_id,
-            }
+        base = self._run_ansible_cmd_sync(cmd, timeout=60)
+        base.update({
+            "action": action,
+            "interface": interface_name,
+            "device_id": device_id,
+        })
+        if base.get("error_type") == "timeout":
+            base["error_message"] = "Interface operation timed out"
+        return base
 
     async def get_playbook_status(self) -> Dict[str, Any]:
         try:
@@ -198,7 +156,7 @@ class AnsibleClient:
             return {
                 "ansible_installed": result.returncode == 0,
                 "ansible_version": result.stdout.split("\n")[0] if result.returncode == 0 else None,
-                "playbook_exists": (self.playbook_path / "interface_management.yml").exists(),
+                "playbook_exists": (self.playbook_path / "interface-control.yml").exists(),
                 "inventory_exists": self.inventory_path.exists(),
                 "project_root": str(self.project_root),
             }
