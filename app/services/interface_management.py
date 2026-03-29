@@ -5,30 +5,42 @@ class InterfaceManagement:
     def __init__(self, frr_client, ansible_client):
         self.frr = frr_client
         self.ansible = ansible_client
+
+    def _get_container_name(self, device_id: int) -> str:
+        device_map = {
+            1: "frr-router1",
+            2: "frr-router2",
+            3: "frr-switch1",
+            4: "frr-switch2"
+        }
+        container_name = device_map.get(device_id)
+        if not container_name:
+            raise HTTPException(status_code=400, detail="Device not found")
+        return container_name
+
+    def _validate_interface_name(self, interface_name: object) -> None:
+        if not interface_name or not isinstance(interface_name, str):
+            raise HTTPException(status_code=400, detail="interface is required")
+        if not interface_name.startswith(("eth", "vlan", "lo")):
+            raise HTTPException(status_code=400, detail="Invalid interface name")
+
+    def _validate_direction(self, direction: object) -> None:
+        if not isinstance(direction, str):
+            raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
+        if direction not in ["in", "out"]:
+            raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
         
     async def manage_interface(self, device_id: int, interface_name: str, action: str):
         """Enable/disable/reset network interfaces"""
         try:
-            # Device mapping
-            device_map = {
-                1: "frr-router1", 
-                2: "frr-router2", 
-                3: "frr-switch1", 
-                4: "frr-switch2"
-            }
-            
-            container_name = device_map.get(device_id)
-            if not container_name:
-                raise HTTPException(status_code=400, detail="Device not found")
+            container_name = self._get_container_name(device_id)
             
             # Validate action
             valid_actions = ['enable', 'disable', 'reset']
             if action not in valid_actions:
                 raise HTTPException(status_code=400, detail=f"Invalid action. Must be one of: {valid_actions}")
             
-            # Validate interface name (basic validation)
-            if not interface_name.startswith(('eth', 'vlan', 'lo')):
-                raise HTTPException(status_code=400, detail="Invalid interface name")
+            self._validate_interface_name(interface_name)
             
             # Run ansible playbook
             result = await self.ansible.run_interface_playbook(
@@ -50,21 +62,16 @@ class InterfaceManagement:
                 "ansible_output": result.get("stdout", ""),
                 "timestamp": datetime.now().isoformat()
             }
-            
+
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     async def get_interfaces(self, device_id: int):
         """Get all interfaces for a device"""
         try:
-            device_map = {
-                1: "frr-router1", 2: "frr-router2", 
-                3: "frr-switch1", 4: "frr-switch2"
-            }
-            
-            container_name = device_map.get(device_id)
-            if not container_name:
-                raise HTTPException(status_code=400, detail="Device not found")
+            container_name = self._get_container_name(device_id)
             
             # Get interface details from FRR
             interfaces = await self.frr.get_interface_details(container_name)
@@ -80,22 +87,15 @@ class InterfaceManagement:
                 "interfaces": interfaces,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
     async def provision_interface(self, device_id: int, payload: dict):
         try:
-            device_map = {
-                1: "frr-router1",
-                2: "frr-router2",
-                3: "frr-switch1",
-                4: "frr-switch2"
-            }
-
-            container_name = device_map.get(device_id)
-            if not container_name:
-                raise HTTPException(status_code=400, detail="Device not found")
+            container_name = self._get_container_name(device_id)
 
             interface_name = payload.get("interface")
             ip_cidr = payload.get("ip_cidr")
@@ -103,12 +103,10 @@ class InterfaceManagement:
             route_prefix = payload.get("route_prefix", "")
             route_next_hop = payload.get("route_next_hop", "")
 
-            if not interface_name or not isinstance(interface_name, str):
-                raise HTTPException(status_code=400, detail="interface is required")
+            self._validate_interface_name(interface_name)
+
             if not ip_cidr or not isinstance(ip_cidr, str):
                 raise HTTPException(status_code=400, detail="ip_cidr is required")
-            if not interface_name.startswith(("eth", "vlan", "lo")):
-                raise HTTPException(status_code=400, detail="Invalid interface name")
 
             if (route_prefix and not route_next_hop) or (route_next_hop and not route_prefix):
                 raise HTTPException(status_code=400, detail="route_prefix and route_next_hop must both be set")
@@ -143,29 +141,15 @@ class InterfaceManagement:
 
     async def apply_acl(self, device_id: int, payload: dict):
         try:
-            device_map = {
-                1: "frr-router1",
-                2: "frr-router2",
-                3: "frr-switch1",
-                4: "frr-switch2"
-            }
-
-            container_name = device_map.get(device_id)
-            if not container_name:
-                raise HTTPException(status_code=400, detail="Device not found")
+            container_name = self._get_container_name(device_id)
 
             interface_name = payload.get("interface")
             direction = payload.get("direction", "in")
             acl_name = payload.get("acl_name")
             acl_lines = payload.get("acl_lines", [])
 
-            if not interface_name or not isinstance(interface_name, str):
-                raise HTTPException(status_code=400, detail="interface is required")
-            if not interface_name.startswith(("eth", "vlan", "lo")):
-                raise HTTPException(status_code=400, detail="Invalid interface name")
-
-            if direction not in ["in", "out"]:
-                raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
+            self._validate_interface_name(interface_name)
+            self._validate_direction(direction)
 
             if not acl_name or not isinstance(acl_name, str):
                 raise HTTPException(status_code=400, detail="acl_name is required")
@@ -203,28 +187,14 @@ class InterfaceManagement:
 
     async def remove_acl(self, device_id: int, payload: dict):
         try:
-            device_map = {
-                1: "frr-router1",
-                2: "frr-router2",
-                3: "frr-switch1",
-                4: "frr-switch2"
-            }
-
-            container_name = device_map.get(device_id)
-            if not container_name:
-                raise HTTPException(status_code=400, detail="Device not found")
+            container_name = self._get_container_name(device_id)
 
             interface_name = payload.get("interface")
             direction = payload.get("direction", "in")
             acl_name = payload.get("acl_name")
 
-            if not interface_name or not isinstance(interface_name, str):
-                raise HTTPException(status_code=400, detail="interface is required")
-            if not interface_name.startswith(("eth", "vlan", "lo")):
-                raise HTTPException(status_code=400, detail="Invalid interface name")
-
-            if direction not in ["in", "out"]:
-                raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
+            self._validate_interface_name(interface_name)
+            self._validate_direction(direction)
 
             if not acl_name or not isinstance(acl_name, str):
                 raise HTTPException(status_code=400, detail="acl_name is required")
