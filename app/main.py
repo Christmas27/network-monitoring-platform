@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 # CORRECTED Service imports - Add 'app.' prefix
@@ -23,7 +24,32 @@ app = FastAPI(title="Network Monitoring API Gateway")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# === ROUTE DEFINITIONS (Clean & Simple) ===
+
+class VlanCreateRequest(BaseModel):
+    vlan_id: int = Field(..., ge=1, le=4094)
+    name: str | None = Field(default=None, max_length=64)
+
+
+class InterfaceProvisionRequest(BaseModel):
+    interface: str = Field(..., min_length=2, max_length=64)
+    ip_cidr: str = Field(..., min_length=3, max_length=64)
+    description: str = Field(default="", max_length=120)
+    route_prefix: str = Field(default="", max_length=64)
+    route_next_hop: str = Field(default="", max_length=64)
+
+
+class ACLApplyRequest(BaseModel):
+    interface: str = Field(..., min_length=2, max_length=64)
+    direction: str = Field(default="in", pattern="^(in|out)$")
+    acl_name: str = Field(..., min_length=1, max_length=64)
+    acl_lines: list[str] = Field(..., min_length=1)
+
+
+class ACLRemoveRequest(BaseModel):
+    interface: str = Field(..., min_length=2, max_length=64)
+    direction: str = Field(default="in", pattern="^(in|out)$")
+    acl_name: str = Field(..., min_length=1, max_length=64)
+
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
@@ -46,8 +72,8 @@ async def get_device_interfaces(device_id: int):
     return await interface_service.get_interfaces(device_id)
 
 @app.post("/api/devices/{device_id}/vlans")
-async def create_vlan(device_id: int, vlan_data: dict):
-    return await vlan_service.create_vlan(device_id, vlan_data)
+async def create_vlan(device_id: int, vlan_data: VlanCreateRequest):
+    return await vlan_service.create_vlan(device_id, vlan_data.model_dump())
 
 @app.delete("/api/devices/{device_id}/vlans/{vlan_id}")
 async def delete_vlan(device_id: int, vlan_id: int):
@@ -79,7 +105,6 @@ async def run_network_test(device_id: int, test_type: str):
     if test_type not in allowed:
         raise HTTPException(status_code=400, detail=f"Invalid test_type. Use one of: {allowed}")
 
-    # Step 2 will implement this method in service layer
     if not hasattr(device_service, "run_network_tests"):
         raise HTTPException(status_code=501, detail="Network test service not implemented yet (Step 2 pending).")
 
@@ -93,16 +118,16 @@ async def run_full_network_test(device_id: int):
     return await device_service.run_network_tests(device_id, "full")
 
 @app.post("/api/devices/{device_id}/interfaces/provision")
-async def provision_interface(device_id: int, payload: dict):
-    return await interface_service.provision_interface(device_id, payload)
+async def provision_interface(device_id: int, payload: InterfaceProvisionRequest):
+    return await interface_service.provision_interface(device_id, payload.model_dump())
 
 @app.post("/api/devices/{device_id}/acl/apply")
-async def apply_acl(device_id: int, payload: dict):
-    return await interface_service.apply_acl(device_id, payload)
+async def apply_acl(device_id: int, payload: ACLApplyRequest):
+    return await interface_service.apply_acl(device_id, payload.model_dump())
 
 @app.post("/api/devices/{device_id}/acl/remove")
-async def remove_acl(device_id: int, payload: dict):
-    return await interface_service.remove_acl(device_id, payload)
+async def remove_acl(device_id: int, payload: ACLRemoveRequest):
+    return await interface_service.remove_acl(device_id, payload.model_dump())
 
 if __name__ == "__main__":
     import uvicorn
