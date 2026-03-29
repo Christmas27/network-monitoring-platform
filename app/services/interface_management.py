@@ -48,6 +48,20 @@ class InterfaceManagement:
         tx["finished_at"] = datetime.now().isoformat()
         tx["summary"] = summary
         return tx
+
+    def _verify_markers(self, stdout: object, expected_markers: list[str], check_name: str) -> dict:
+        text = stdout if isinstance(stdout, str) else ""
+        missing = [m for m in expected_markers if m not in text]
+        passed = len(missing) == 0
+        return {
+            "status": "passed" if passed else "failed",
+            "details": {
+                "check": check_name,
+                "expected_markers": expected_markers,
+                "missing_markers": missing,
+                "marker_found": passed
+            }
+        }
         
     async def manage_interface(self, device_id: int, interface_name: str, action: str):
         """Enable/disable/reset network interfaces"""
@@ -154,19 +168,24 @@ class InterfaceManagement:
 
             apply_ok = result.get("success", False)
             summary = result.get("summary", {})
+            verify_stage = self._verify_markers(
+                result.get("stdout", ""),
+                [f"Interface {interface_name}", ip_cidr],
+                "interface_provision"
+            )
+            verify_ok = verify_stage["status"] == "passed"
+            overall_ok = apply_ok and verify_ok
 
             tx["stages"]["apply"] = {
                 "status": "passed" if apply_ok else "failed",
                 "return_code": result.get("return_code")
             }
-            tx["stages"]["verify"] = {
-                "status": "passed" if summary.get("status") == "PASSED" else "failed",
-                "details": summary
-            }
-            tx = self._finalize_transaction(tx, apply_ok, summary)
+            tx["stages"]["verify"] = verify_stage
+            tx["stages"]["verify"]["details"]["summary_status"] = summary.get("status")
+            tx = self._finalize_transaction(tx, overall_ok, summary)
 
             return {
-                "success": result.get("success", False),
+                "success": overall_ok,
                 "device_id": device_id,
                 "container": container_name,
                 "interface": interface_name,
@@ -229,19 +248,24 @@ class InterfaceManagement:
 
             apply_ok = result.get("success", False)
             summary = result.get("summary", {})
+            verify_stage = self._verify_markers(
+                result.get("stdout", ""),
+                [f"ACL {acl_name} applied"],
+                "acl_apply"
+            )
+            verify_ok = verify_stage["status"] == "passed"
+            overall_ok = apply_ok and verify_ok
 
             tx["stages"]["apply"] = {
                 "status": "passed" if apply_ok else "failed",
                 "return_code": result.get("return_code")
             }
-            tx["stages"]["verify"] = {
-                "status": "passed" if summary.get("status") == "PASSED" else "failed",
-                "details": summary
-            }
-            tx = self._finalize_transaction(tx, apply_ok, summary)
+            tx["stages"]["verify"] = verify_stage
+            tx["stages"]["verify"]["details"]["summary_status"] = summary.get("status")
+            tx = self._finalize_transaction(tx, overall_ok, summary)
 
             return {
-                "success": result.get("success", False),
+                "success": overall_ok,
                 "device_id": device_id,
                 "container": container_name,
                 "interface": interface_name,
@@ -300,19 +324,24 @@ class InterfaceManagement:
 
             apply_ok = result.get("success", False)
             summary = result.get("summary", {})
+            verify_stage = self._verify_markers(
+                result.get("stdout", ""),
+                [f"ACL {acl_name} removed"],
+                "acl_remove"
+            )
+            verify_ok = verify_stage["status"] == "passed"
+            overall_ok = apply_ok and verify_ok
 
             tx["stages"]["apply"] = {
                 "status": "passed" if apply_ok else "failed",
                 "return_code": result.get("return_code")
             }
-            tx["stages"]["verify"] = {
-                "status": "passed" if summary.get("status") == "PASSED" else "failed",
-                "details": summary
-            }
-            tx = self._finalize_transaction(tx, apply_ok, summary)
+            tx["stages"]["verify"] = verify_stage
+            tx["stages"]["verify"]["details"]["summary_status"] = summary.get("status")
+            tx = self._finalize_transaction(tx, overall_ok, summary)
 
             return {
-                "success": result.get("success", False),
+                "success": overall_ok,
                 "device_id": device_id,
                 "container": container_name,
                 "interface": interface_name,
