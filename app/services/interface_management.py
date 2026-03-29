@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from datetime import datetime
+from uuid import uuid4
 
 class InterfaceManagement:
     def __init__(self, frr_client, ansible_client):
@@ -29,6 +30,24 @@ class InterfaceManagement:
             raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
         if direction not in ["in", "out"]:
             raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
+
+    def _init_transaction(self) -> dict:
+        return {
+            "transaction_id": str(uuid4()),
+            "started_at": datetime.now().isoformat(),
+            "stages": {
+                "precheck": {"status": "pending"},
+                "apply": {"status": "pending"},
+                "verify": {"status": "pending"},
+                "rollback": {"status": "not_requested"}
+            }
+        }
+
+    def _finalize_transaction(self, tx: dict, success: bool, summary: dict) -> dict:
+        tx["final_status"] = "PASSED" if success else "FAILED"
+        tx["finished_at"] = datetime.now().isoformat()
+        tx["summary"] = summary
+        return tx
         
     async def manage_interface(self, device_id: int, interface_name: str, action: str):
         """Enable/disable/reset network interfaces"""
@@ -95,6 +114,7 @@ class InterfaceManagement:
 
     async def provision_interface(self, device_id: int, payload: dict):
         try:
+            tx = self._init_transaction()
             container_name = self._get_container_name(device_id)
 
             interface_name = payload.get("interface")
@@ -111,6 +131,15 @@ class InterfaceManagement:
             if (route_prefix and not route_next_hop) or (route_next_hop and not route_prefix):
                 raise HTTPException(status_code=400, detail="route_prefix and route_next_hop must both be set")
 
+            tx["stages"]["precheck"] = {
+                "status": "passed",
+                "details": {
+                    "device_id": device_id,
+                    "container": container_name,
+                    "interface": interface_name
+                }
+            }
+
             result = await self.ansible.run_interface_provision_playbook(
                 "interface-provision.yml",
                 {
@@ -123,6 +152,19 @@ class InterfaceManagement:
                 }
             )
 
+            apply_ok = result.get("success", False)
+            summary = result.get("summary", {})
+
+            tx["stages"]["apply"] = {
+                "status": "passed" if apply_ok else "failed",
+                "return_code": result.get("return_code")
+            }
+            tx["stages"]["verify"] = {
+                "status": "passed" if summary.get("status") == "PASSED" else "failed",
+                "details": summary
+            }
+            tx = self._finalize_transaction(tx, apply_ok, summary)
+
             return {
                 "success": result.get("success", False),
                 "device_id": device_id,
@@ -131,6 +173,11 @@ class InterfaceManagement:
                 "ip_cidr": ip_cidr,
                 "summary": result.get("summary", {}),
                 "result": result,
+                "transaction_id": tx["transaction_id"],
+                "started_at": tx["started_at"],
+                "finished_at": tx["finished_at"],
+                "final_status": tx["final_status"],
+                "stages": tx["stages"],
                 "timestamp": datetime.now().isoformat()
             }
 
@@ -141,6 +188,7 @@ class InterfaceManagement:
 
     async def apply_acl(self, device_id: int, payload: dict):
         try:
+            tx = self._init_transaction()
             container_name = self._get_container_name(device_id)
 
             interface_name = payload.get("interface")
@@ -157,6 +205,17 @@ class InterfaceManagement:
             if not isinstance(acl_lines, list) or len(acl_lines) == 0:
                 raise HTTPException(status_code=400, detail="acl_lines must be a non-empty list")
 
+            tx["stages"]["precheck"] = {
+                "status": "passed",
+                "details": {
+                    "device_id": device_id,
+                    "container": container_name,
+                    "interface": interface_name,
+                    "direction": direction,
+                    "acl_name": acl_name
+                }
+            }
+
             result = await self.ansible.run_acl_playbook(
                 "apply-acl.yml",
                 {
@@ -168,6 +227,19 @@ class InterfaceManagement:
                 }
             )
 
+            apply_ok = result.get("success", False)
+            summary = result.get("summary", {})
+
+            tx["stages"]["apply"] = {
+                "status": "passed" if apply_ok else "failed",
+                "return_code": result.get("return_code")
+            }
+            tx["stages"]["verify"] = {
+                "status": "passed" if summary.get("status") == "PASSED" else "failed",
+                "details": summary
+            }
+            tx = self._finalize_transaction(tx, apply_ok, summary)
+
             return {
                 "success": result.get("success", False),
                 "device_id": device_id,
@@ -177,6 +249,11 @@ class InterfaceManagement:
                 "acl_name": acl_name,
                 "summary": result.get("summary", {}),
                 "result": result,
+                "transaction_id": tx["transaction_id"],
+                "started_at": tx["started_at"],
+                "finished_at": tx["finished_at"],
+                "final_status": tx["final_status"],
+                "stages": tx["stages"],
                 "timestamp": datetime.now().isoformat()
             }
 
@@ -187,6 +264,7 @@ class InterfaceManagement:
 
     async def remove_acl(self, device_id: int, payload: dict):
         try:
+            tx = self._init_transaction()
             container_name = self._get_container_name(device_id)
 
             interface_name = payload.get("interface")
@@ -199,6 +277,17 @@ class InterfaceManagement:
             if not acl_name or not isinstance(acl_name, str):
                 raise HTTPException(status_code=400, detail="acl_name is required")
 
+            tx["stages"]["precheck"] = {
+                "status": "passed",
+                "details": {
+                    "device_id": device_id,
+                    "container": container_name,
+                    "interface": interface_name,
+                    "direction": direction,
+                    "acl_name": acl_name
+                }
+            }
+
             result = await self.ansible.run_acl_playbook(
                 "remove-acl.yml",
                 {
@@ -209,6 +298,19 @@ class InterfaceManagement:
                 }
             )
 
+            apply_ok = result.get("success", False)
+            summary = result.get("summary", {})
+
+            tx["stages"]["apply"] = {
+                "status": "passed" if apply_ok else "failed",
+                "return_code": result.get("return_code")
+            }
+            tx["stages"]["verify"] = {
+                "status": "passed" if summary.get("status") == "PASSED" else "failed",
+                "details": summary
+            }
+            tx = self._finalize_transaction(tx, apply_ok, summary)
+
             return {
                 "success": result.get("success", False),
                 "device_id": device_id,
@@ -218,6 +320,11 @@ class InterfaceManagement:
                 "acl_name": acl_name,
                 "summary": result.get("summary", {}),
                 "result": result,
+                "transaction_id": tx["transaction_id"],
+                "started_at": tx["started_at"],
+                "finished_at": tx["finished_at"],
+                "final_status": tx["final_status"],
+                "stages": tx["stages"],
                 "timestamp": datetime.now().isoformat()
             }
 
