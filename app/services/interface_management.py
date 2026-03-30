@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from datetime import datetime
 from uuid import uuid4
+from typing import Any, NoReturn
 
 class InterfaceManagement:
     def __init__(self, frr_client, ansible_client):
@@ -16,20 +17,36 @@ class InterfaceManagement:
         }
         container_name = device_map.get(device_id)
         if not container_name:
-            raise HTTPException(status_code=400, detail="Device not found")
+            self._raise_not_found("Device not found", {"device_id": device_id}, status_code=400)
         return container_name
+
+    def _error_detail(self, error_type: str, message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "error_type": error_type,
+            "message": message,
+            "context": context or {}
+        }
+
+    def _raise_validation(self, message: str, context: dict[str, Any] | None = None) -> NoReturn:
+        raise HTTPException(status_code=400, detail=self._error_detail("validation_error", message, context))
+
+    def _raise_not_found(self, message: str, context: dict[str, Any] | None = None, status_code: int = 404) -> NoReturn:
+        raise HTTPException(status_code=status_code, detail=self._error_detail("not_found", message, context))
+
+    def _raise_execution(self, message: str, context: dict[str, Any] | None = None) -> NoReturn:
+        raise HTTPException(status_code=500, detail=self._error_detail("execution_error", message, context))
 
     def _validate_interface_name(self, interface_name: object) -> None:
         if not interface_name or not isinstance(interface_name, str):
-            raise HTTPException(status_code=400, detail="interface is required")
+            self._raise_validation("interface is required")
         if not interface_name.startswith(("eth", "vlan", "lo")):
-            raise HTTPException(status_code=400, detail="Invalid interface name")
+            self._raise_validation("Invalid interface name", {"interface": interface_name})
 
     def _validate_direction(self, direction: object) -> None:
         if not isinstance(direction, str):
-            raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
+            self._raise_validation("direction must be 'in' or 'out'", {"direction": direction})
         if direction not in ["in", "out"]:
-            raise HTTPException(status_code=400, detail="direction must be 'in' or 'out'")
+            self._raise_validation("direction must be 'in' or 'out'", {"direction": direction})
 
     def _init_transaction(self) -> dict:
         return {
@@ -71,7 +88,10 @@ class InterfaceManagement:
             # Validate action
             valid_actions = ['enable', 'disable', 'reset']
             if action not in valid_actions:
-                raise HTTPException(status_code=400, detail=f"Invalid action. Must be one of: {valid_actions}")
+                self._raise_validation(
+                    f"Invalid action. Must be one of: {valid_actions}",
+                    {"action": action, "allowed": valid_actions}
+                )
             
             self._validate_interface_name(interface_name)
             
@@ -99,7 +119,7 @@ class InterfaceManagement:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "manage_interface"})
 
     async def get_interfaces(self, device_id: int):
         """Get all interfaces for a device"""
@@ -124,7 +144,7 @@ class InterfaceManagement:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "get_interfaces"})
 
     async def provision_interface(self, device_id: int, payload: dict):
         try:
@@ -138,12 +158,20 @@ class InterfaceManagement:
             route_next_hop = payload.get("route_next_hop", "")
 
             self._validate_interface_name(interface_name)
+            interface_name_str = interface_name if isinstance(interface_name, str) else ""
 
             if not ip_cidr or not isinstance(ip_cidr, str):
-                raise HTTPException(status_code=400, detail="ip_cidr is required")
+                self._raise_validation("ip_cidr is required")
+            ip_cidr_str = ip_cidr
 
             if (route_prefix and not route_next_hop) or (route_next_hop and not route_prefix):
-                raise HTTPException(status_code=400, detail="route_prefix and route_next_hop must both be set")
+                self._raise_validation(
+                    "route_prefix and route_next_hop must both be set",
+                    {
+                        "route_prefix_set": bool(route_prefix),
+                        "route_next_hop_set": bool(route_next_hop)
+                    }
+                )
 
             tx["stages"]["precheck"] = {
                 "status": "passed",
@@ -170,7 +198,7 @@ class InterfaceManagement:
             summary = result.get("summary", {})
             verify_stage = self._verify_markers(
                 result.get("stdout", ""),
-                [f"Interface {interface_name}", ip_cidr],
+                [f"Interface {interface_name_str}", ip_cidr_str],
                 "interface_provision"
             )
             verify_ok = verify_stage["status"] == "passed"
@@ -188,8 +216,8 @@ class InterfaceManagement:
                 "success": overall_ok,
                 "device_id": device_id,
                 "container": container_name,
-                "interface": interface_name,
-                "ip_cidr": ip_cidr,
+                "interface": interface_name_str,
+                "ip_cidr": ip_cidr_str,
                 "summary": result.get("summary", {}),
                 "result": result,
                 "transaction_id": tx["transaction_id"],
@@ -203,7 +231,7 @@ class InterfaceManagement:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "provision_interface"})
 
     async def apply_acl(self, device_id: int, payload: dict):
         try:
@@ -219,10 +247,10 @@ class InterfaceManagement:
             self._validate_direction(direction)
 
             if not acl_name or not isinstance(acl_name, str):
-                raise HTTPException(status_code=400, detail="acl_name is required")
+                self._raise_validation("acl_name is required")
 
             if not isinstance(acl_lines, list) or len(acl_lines) == 0:
-                raise HTTPException(status_code=400, detail="acl_lines must be a non-empty list")
+                self._raise_validation("acl_lines must be a non-empty list")
 
             tx["stages"]["precheck"] = {
                 "status": "passed",
@@ -284,7 +312,7 @@ class InterfaceManagement:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "apply_acl"})
 
     async def remove_acl(self, device_id: int, payload: dict):
         try:
@@ -299,7 +327,7 @@ class InterfaceManagement:
             self._validate_direction(direction)
 
             if not acl_name or not isinstance(acl_name, str):
-                raise HTTPException(status_code=400, detail="acl_name is required")
+                self._raise_validation("acl_name is required")
 
             tx["stages"]["precheck"] = {
                 "status": "passed",
@@ -360,5 +388,5 @@ class InterfaceManagement:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "remove_acl"})
 

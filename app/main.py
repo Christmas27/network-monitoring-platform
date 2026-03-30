@@ -25,6 +25,14 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _error_detail(error_type: str, message: str, context: dict | None = None) -> dict:
+    return {
+        "error_type": error_type,
+        "message": message,
+        "context": context or {}
+    }
+
+
 class VlanCreateRequest(BaseModel):
     vlan_id: int = Field(..., ge=1, le=4094)
     name: str | None = Field(default=None, max_length=64)
@@ -103,17 +111,36 @@ async def get_device_ospf(device_id: int):
 async def run_network_test(device_id: int, test_type: str):
     allowed = ["full", "ping", "interfaces", "ospf", "routes"]
     if test_type not in allowed:
-        raise HTTPException(status_code=400, detail=f"Invalid test_type. Use one of: {allowed}")
+        raise HTTPException(
+            status_code=400,
+            detail=_error_detail(
+                "validation_error",
+                f"Invalid test_type. Use one of: {allowed}",
+                {"test_type": test_type, "allowed": allowed}
+            )
+        )
 
     if not hasattr(device_service, "run_network_tests"):
-        raise HTTPException(status_code=501, detail="Network test service not implemented yet (Step 2 pending).")
+        raise HTTPException(
+            status_code=501,
+            detail=_error_detail(
+                "not_implemented",
+                "Network test service not implemented yet (Step 2 pending)."
+            )
+        )
 
     return await device_service.run_network_tests(device_id, test_type)
 
 @app.post("/api/devices/{device_id}/test")
 async def run_full_network_test(device_id: int):
     if not hasattr(device_service, "run_network_tests"):
-        raise HTTPException(status_code=501, detail="Network test service not implemented yet (Step 2 pending).")
+        raise HTTPException(
+            status_code=501,
+            detail=_error_detail(
+                "not_implemented",
+                "Network test service not implemented yet (Step 2 pending)."
+            )
+        )
 
     return await device_service.run_network_tests(device_id, "full")
 
