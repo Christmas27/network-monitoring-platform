@@ -2,6 +2,7 @@
 from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
+from typing import Any, NoReturn
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -9,6 +10,22 @@ class DeviceManagement:
     def __init__(self, frr_client, ansible_client):
         self.frr = frr_client
         self.ansible = ansible_client
+
+    def _error_detail(self, error_type: str, message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "error_type": error_type,
+            "message": message,
+            "context": context or {}
+        }
+
+    def _raise_validation(self, message: str, context: dict[str, Any] | None = None) -> NoReturn:
+        raise HTTPException(status_code=400, detail=self._error_detail("validation_error", message, context))
+
+    def _raise_not_found(self, message: str, context: dict[str, Any] | None = None) -> NoReturn:
+        raise HTTPException(status_code=404, detail=self._error_detail("not_found", message, context))
+
+    def _raise_execution(self, message: str, context: dict[str, Any] | None = None) -> NoReturn:
+        raise HTTPException(status_code=500, detail=self._error_detail("execution_error", message, context))
         
     async def get_devices(self):
         """Get all devices with their status"""
@@ -60,7 +77,7 @@ class DeviceManagement:
             }
             
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "get_devices"})
     
     async def get_device_details(self, request: Request, device_id: int):
         """Get device details page - FIXED METHOD SIGNATURE"""
@@ -75,7 +92,7 @@ class DeviceManagement:
             
             container_name = device_map.get(device_id)
             if not container_name:
-                raise HTTPException(status_code=404, detail="Device not found")
+                self._raise_not_found("Device not found", {"device_id": device_id})
             
             # Get device information
             device_info = await self.frr.get_device_info(container_name)
@@ -117,9 +134,11 @@ class DeviceManagement:
                 "device_id": device_id
             })
             
+        except HTTPException:
+            raise
         except Exception as e:
             print(f"Error in get_device_details: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "get_device_details", "device_id": device_id})
     
     async def get_device_config(self, device_id: int):
         """Get device running configuration"""
@@ -133,7 +152,7 @@ class DeviceManagement:
             
             container_name = device_map.get(device_id)
             if not container_name:
-                raise HTTPException(status_code=404, detail="Device not found")
+                self._raise_not_found("Device not found", {"device_id": device_id})
             
             # Get running config from FRR
             config = await self.frr.get_running_config(container_name)
@@ -145,8 +164,10 @@ class DeviceManagement:
                 "timestamp": datetime.now().isoformat()
             }
             
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "get_device_config", "device_id": device_id})
     
     async def get_device_routes(self, device_id: int):
         """Get device routing table"""
@@ -160,7 +181,7 @@ class DeviceManagement:
             
             container_name = device_map.get(device_id)
             if not container_name:
-                raise HTTPException(status_code=404, detail="Device not found")
+                self._raise_not_found("Device not found", {"device_id": device_id})
             
             # Get routing table from FRR
             routes = await self.frr.get_routing_table(container_name)
@@ -172,8 +193,10 @@ class DeviceManagement:
                 "timestamp": datetime.now().isoformat()
             }
             
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "get_device_routes", "device_id": device_id})
     
     async def get_device_ospf(self, device_id: int):
         """Get OSPF neighbors (for routers)"""
@@ -200,8 +223,10 @@ class DeviceManagement:
                 "timestamp": datetime.now().isoformat()
             }
             
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(str(e), {"operation": "get_device_ospf", "device_id": device_id})
 
     async def run_network_tests(self, device_id: int, test_type: str = "full"):
         """Run network tests on a device"""
@@ -215,11 +240,14 @@ class DeviceManagement:
             
             container_name = device_map.get(device_id)
             if not container_name:
-                raise HTTPException(status_code=404, detail="Device not found")
+                self._raise_not_found("Device not found", {"device_id": device_id})
 
             allowed = ["full", "ping", "interfaces", "ospf", "routes"]
             if test_type not in allowed:
-                raise HTTPException(status_code=400, detail=f"Invalid test_type. Use one of: {allowed}")
+                self._raise_validation(
+                    f"Invalid test_type. Use one of: {allowed}",
+                    {"test_type": test_type, "allowed": allowed}
+                )
 
             result = await self.ansible.run_network_test_playbook(
                 "connectivity-test.yml",
@@ -241,4 +269,7 @@ class DeviceManagement:
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            self._raise_execution(
+                str(e),
+                {"operation": "run_network_tests", "device_id": device_id, "test_type": test_type}
+            )
