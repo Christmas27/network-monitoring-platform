@@ -1,4 +1,50 @@
-/* Reset and base styles */
+/* ============================================
+   Design Tokens — Single Source of Truth
+   ============================================ */
+:root {
+    /* Layout colors (light mode defaults) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --shadow: rgba(0, 0, 0, 0.1);
+
+    /* Accent palette */
+    --primary-blue: #2563eb;
+    --success-green: #059669;
+    --danger-red: #dc2626;
+    --warning-orange: #d97706;
+    --purple: #7c3aed;
+
+    /* Dark-context surface colors (used by JS-rendered components) */
+    --card-bg-dark: #1f2937;
+    --card-border: #374151;
+
+    /* Shared utilities */
+    --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --transition-fast: all 0.15s ease;
+    --border-radius: 8px;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --border-color: #475569;
+    --shadow: rgba(0, 0, 0, 0.3);
+
+    --danger-red: #f87171;
+    --warning-orange: #fbbf24;
+    --success-green: #34d399;
+}
+
+/* ============================================
+   Reset & Base
+   ============================================ */
 * {
     margin: 0;
     padding: 0;
@@ -7,26 +53,33 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f7fa;
-    color: #333;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* ============================================
+   Layout
+   ============================================ */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    background-color: var(--bg-primary);
 }
 
 h1 {
     text-align: center;
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 30px;
     font-size: 2.5rem;
     font-weight: 300;
 }
 
-/* Device Grid */
+/* ============================================
+   Device Grid & Cards
+   ============================================ */
 #devices-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -35,27 +88,29 @@ h1 {
 }
 
 .device-card {
-    background: white;
-    border-radius: 8px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px var(--shadow);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .device-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 20px var(--shadow);
 }
 
 .device-name {
     font-size: 1.2rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 10px;
 }
 
 .device-ip {
-    color: #7f8c8d;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     margin-bottom: 15px;
 }
@@ -78,31 +133,38 @@ h1 {
     color: #721c24;
 }
 
-/* Loading state */
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: #7f8c8d;
+[data-theme="dark"] .status-up {
+    background-color: #065f46;
+    color: #10b981;
 }
 
-/* Add device button (for later) */
-.add-device-btn {
-    background-color: #3498db;
-    color: white;
+[data-theme="dark"] .status-down {
+    background-color: #7f1d1d;
+    color: #ef4444;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.btn {
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 10px 16px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 0.875rem;
     cursor: pointer;
-    margin-bottom: 20px;
+    transition: var(--transition-fast);
 }
 
-.add-device-btn:hover {
-    background-color: #2980b9;
-}
+.btn-primary { background: var(--primary-blue); color: white; }
+.btn-success { background: var(--success-green); color: white; }
+.btn-danger  { background: var(--danger-red); color: white; }
 
-/* Detail button */
+.btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
 .detail-button {
-    background: #3b82f6;
+    background: var(--primary-blue);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -115,86 +177,18 @@ h1 {
     width: 100%;
 }
 
-.detail-button:hover {
-    background: #2563eb;
+.detail-button:hover { background: #2563eb; }
+.detail-button:active { background: #1d4ed8; }
+
+/* ============================================
+   Loading & Feedback States
+   ============================================ */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
 }
 
-.detail-button:active {
-    background: #1d4ed8;
-}
-
-/* Add these enhanced styles to your style.css */
-:root {
-    --primary-blue: #2563eb;
-    --success-green: #059669;
-    --danger-red: #dc2626;
-    --warning-orange: #d97706;
-    --purple: #7c3aed;
-    
-    /* Darker, more contrasted colors */
-    --card-bg-dark: #1f2937;
-    --card-border: #374151;
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --bg-primary: #111827;
-    
-    --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --transition-fast: all 0.15s ease;
-    --border-radius: 8px;
-}
-
-/* Enhanced card animations */
-@keyframes pulse-success {
-    0%, 100% { 
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-        transform: scale(1);
-    }
-    50% { 
-        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-        transform: scale(1.02);
-    }
-}
-
-@keyframes pulse-danger {
-    0%, 100% { 
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-        transform: scale(1);
-    }
-    50% { 
-        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-        transform: scale(1.02);
-    }
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-}
-
-/* Enhanced button styles */
-.btn-primary {
-    background: var(--gradient-primary);
-    color: white;
-    border: none;
-    padding: 14px 20px;
-    border-radius: var(--border-radius-md);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition-smooth);
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: var(--shadow-large);
-}
-
-.btn-primary:active {
-    transform: translateY(0) scale(0.98);
-}
-
-/* Loading states */
 .btn-loading {
     position: relative;
     color: transparent;
@@ -209,7 +203,7 @@ h1 {
     height: 20px;
     margin: -10px 0 0 -10px;
     border: 2px solid transparent;
-    border-top: 2px solid currentColor;
+    border-top: 2px solid white;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -219,43 +213,76 @@ h1 {
     100% { transform: rotate(360deg); }
 }
 
-/* Clean, professional variables */
-:root {
-    --primary-blue: #2563eb;
-    --success-green: #059669;
-    --danger-red: #dc2626;
-    --warning-orange: #d97706;
-    --purple: #7c3aed;
-    
-    /* Darker, more contrasted colors */
-    --card-bg-dark: #1f2937;
-    --card-border: #374151;
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --bg-primary: #111827;
-    
-    --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --transition-fast: all 0.15s ease;
-    --border-radius: 8px;
-}
-
-/* Remove all animations */
-@keyframes none { }
-
-/* Clean button styles */
-.btn {
-    border: none;
-    padding: 10px 16px;
-    border-radius: var(--border-radius);
-    font-weight: 600;
-    font-size: 0.875rem;
+/* ============================================
+   Dark-Mode Toggle (shared across all pages)
+   ============================================ */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 15px;
+    border-radius: 50px;
     cursor: pointer;
-    transition: var(--transition-fast);
+    font-size: 18px;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 8px var(--shadow);
 }
 
-.btn-primary { background: var(--primary-blue); color: white; }
-.btn-success { background: var(--success-green); color: white; }
-.btn-danger { background: var(--danger-red); color: white; }
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
 
-.btn:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/* ============================================
+   Tailwind Dark-Mode Overrides
+   ============================================ */
+.bg-gray-100    { background-color: var(--bg-primary) !important; }
+.bg-gray-50     { background-color: var(--bg-secondary) !important; }
+.bg-white       { background-color: var(--bg-card) !important; }
+.text-gray-800  { color: var(--text-primary) !important; }
+.text-gray-600  { color: var(--text-secondary) !important; }
+.border-gray-200 { border-color: var(--border-color) !important; }
+.shadow-md      { box-shadow: 0 4px 6px var(--shadow) !important; }
+
+svg text { fill: var(--text-primary) !important; }
+
+/* ============================================
+   Device Details — Switch Components
+   ============================================ */
+.vlan-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.vlan-status[data-status="up"]   { background: #065f46; color: #10b981; }
+.vlan-status[data-status="down"] { background: #7f1d1d; color: #ef4444; }
+
+.delete-vlan-btn {
+    background: var(--danger-red);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.delete-vlan-btn:hover { opacity: 0.85; }
+
+.port-card {
+    background: #374151;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    border-left: 4px solid #ef4444;
+}
+
+.port-card[data-status="up"]   { border-left-color: #10b981; }
+.port-card[data-status="down"] { border-left-color: #ef4444; }
+
+.port-status[data-status="up"]   { color: #10b981; }
+.port-status[data-status="down"] { color: #ef4444; }

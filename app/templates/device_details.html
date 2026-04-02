@@ -4,79 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Network Topology</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/dark-mode.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    
-    <!-- Force dark mode compatibility -->
-    <style>
-        .bg-gray-100 { background-color: var(--bg-primary) !important; }
-        .bg-white { background-color: var(--bg-card) !important; }
-        .text-gray-800 { color: var(--text-primary) !important; }
-        .text-gray-600 { color: var(--text-secondary) !important; }
-        .border-gray-200 { border-color: var(--border-color) !important; }
-        .shadow-md { box-shadow: 0 4px 6px var(--shadow) !important; }
-        
-        /* SVG text color fix */
-        svg text { fill: var(--text-primary) !important; }
-        
-        /* VLAN status styling */
-        .vlan-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .vlan-status[data-status="up"] {
-            background: #065f46;
-            color: #10b981;
-        }
-        
-        .vlan-status[data-status="down"] {
-            background: #7f1d1d;
-            color: #ef4444;
-        }
-        
-        /* Delete button styling */
-        .delete-vlan-btn {
-            background: #dc2626;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .delete-vlan-btn:hover {
-            background: #b91c1c;
-        }
-        
-        /* Port card styling */
-        .port-card {
-            background: #374151;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #ef4444; /* Default */
-        }
-        
-        .port-card[data-status="up"] {
-            border-left-color: #10b981;
-        }
-        
-        .port-card[data-status="down"] {
-            border-left-color: #ef4444;
-        }
-        
-        /* Port status styling */
-        .port-status[data-status="up"] {
-            color: #10b981;
-        }
-        
-        .port-status[data-status="down"] {
-            color: #ef4444;
-        }
-    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Dark Mode Toggle Button -->
