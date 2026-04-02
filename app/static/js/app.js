@@ -110,7 +110,7 @@ class NetworkDashboard {
 
     showLoading() {
         this.devicesGrid.innerHTML = `
-            <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+            <div class="empty-state">
                 <div style="font-size: 2rem; margin-bottom: 10px;">🔄</div>
                 <div>Loading devices...</div>
             </div>`;
@@ -118,17 +118,9 @@ class NetworkDashboard {
 
     showError(message) {
         this.devicesGrid.innerHTML = `
-            <div style="text-align: center; padding: 60px;">
-                <div style="color: #ef4444; font-size: 1.5rem; margin-bottom: 10px;">❌ ${message}</div>
-                <button onclick="location.reload()" style="
-                    background: #3b82f6;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 600;
-                ">🔄 Retry</button>
+            <div class="error-state">
+                <div class="error-state__message">❌ ${message}</div>
+                <button onclick="location.reload()" class="retry-btn">🔄 Retry</button>
             </div>`;
     }
 
@@ -137,46 +129,24 @@ class NetworkDashboard {
         window.currentDevices = devices;
         
         if (!devices || devices.length === 0) {
-            this.devicesGrid.innerHTML = '<div style="text-align: center; padding: 60px; color: var(--text-secondary);">No devices found</div>';
+            this.devicesGrid.innerHTML = '<div class="empty-state">No devices found</div>';
             return;
         }
 
         this.devicesGrid.innerHTML = `
-            <div class="monitoring-dashboard" style="
-                background: var(--bg-primary);
-                color: var(--text-primary);
-                padding: 20px;
-                max-width: 1400px;
-                margin: 0 auto;
-            ">
+            <div class="monitoring-dashboard">
                 <!-- Network Topology -->
                 <div id="network-topology"></div>
                 
                 <!-- Header Stats -->
-                <div class="stats-grid" style="
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 20px;
-                    margin-bottom: 30px;
-                ">
+                <div class="stats-grid">
                     ${this.createStatsCards(devices)}
                 </div>
                 
-                <!-- Device Table (existing) -->
-                <div class="device-table-container" style="
-                    background: var(--card-bg-dark);
-                    border: 1px solid var(--card-border);
-                    border-radius: var(--border-radius);
-                    overflow: hidden;
-                ">
-                    <div class="table-header" style="
-                        background: #374151;
-                        padding: 16px 20px;
-                        border-bottom: 1px solid var(--card-border);
-                    ">
-                        <h2 style="margin: 0; color: var(--text-primary); font-size: 1.25rem; font-weight: 600;">
-                            📊 Device Status Table
-                        </h2>
+                <!-- Device Table -->
+                <div class="device-table-container">
+                    <div class="table-header">
+                        <h2>📊 Device Status Table</h2>
                     </div>
                     
                     <div class="device-table">
@@ -200,65 +170,31 @@ class NetworkDashboard {
         const totalNeighbors = devices.reduce((sum, d) => sum + (d.ospf_neighbors || 0), 0);
         
         return `
-            <div class="stat-card" style="
-                background: var(--card-bg-dark);
-                border: 1px solid var(--card-border);
-                border-radius: var(--border-radius);
-                padding: 20px;
-                text-align: center;
-            ">
-                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 8px;">Total Devices</div>
-                <div style="color: var(--primary-blue); font-size: 2rem; font-weight: 700;">${totalDevices}</div>
+            <div class="stat-card">
+                <div class="stat-label">Total Devices</div>
+                <div class="stat-value stat-value--blue">${totalDevices}</div>
             </div>
             
-            <div class="stat-card" style="
-                background: var(--card-bg-dark);
-                border: 1px solid var(--card-border);
-                border-radius: var(--border-radius);
-                padding: 20px;
-                text-align: center;
-            ">
-                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 8px;">Online</div>
-                <div style="color: var(--success-green); font-size: 2rem; font-weight: 700;">${onlineDevices}</div>
+            <div class="stat-card">
+                <div class="stat-label">Online</div>
+                <div class="stat-value stat-value--green">${onlineDevices}</div>
             </div>
             
-            <div class="stat-card" style="
-                background: var(--card-bg-dark);
-                border: 1px solid var(--card-border);
-                border-radius: var(--border-radius);
-                padding: 20px;
-                text-align: center;
-            ">
-                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 8px;">Offline</div>
-                <div style="color: var(--danger-red); font-size: 2rem; font-weight: 700;">${offlineDevices}</div>
+            <div class="stat-card">
+                <div class="stat-label">Offline</div>
+                <div class="stat-value stat-value--red">${offlineDevices}</div>
             </div>
             
-            <div class="stat-card" style="
-                background: var(--card-bg-dark);
-                border: 1px solid var(--card-border);
-                border-radius: var(--border-radius);
-                padding: 20px;
-                text-align: center;
-            ">
-                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 8px;">OSPF Neighbors</div>
-                <div style="color: var(--warning-orange); font-size: 2rem; font-weight: 700;">${totalNeighbors}</div>
+            <div class="stat-card">
+                <div class="stat-label">OSPF Neighbors</div>
+                <div class="stat-value stat-value--orange">${totalNeighbors}</div>
             </div>
         `;
     }
 
     createDeviceTable(devices) {
         const tableHeader = `
-            <div style="
-                display: grid;
-                grid-template-columns: 40px 1fr 150px 120px 120px 180px 200px;
-                gap: 15px;
-                padding: 16px 20px;
-                background: #4b5563;
-                color: var(--text-primary);
-                font-weight: 600;
-                font-size: 0.875rem;
-                border-bottom: 1px solid var(--card-border);
-            ">
+            <div class="device-table-columns">
                 <div>Status</div>
                 <div>Device Name</div>
                 <div>IP Address</div>
@@ -281,80 +217,39 @@ class NetworkDashboard {
     const isSwitch = (device.device_type || '').toLowerCase().includes('switch');
 
     return `
-        <div class="device-row" data-device-id="${device.id}" style="
-            display: grid;
-            grid-template-columns: 40px 1fr 150px 120px 120px 180px 380px;
-            gap: 15px;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--card-border);
-            transition: var(--transition-fast);
-            color: var(--text-primary);
-        " onmouseover="this.style.background='#374151'" onmouseout="this.style.background='transparent'">
+        <div class="device-row" data-device-id="${device.id}">
 
-        <div class="status-icon" style="font-size: 1.2rem;">${statusIcon}</div>
+        <div class="status-icon">${statusIcon}</div>
 
         <div>
-            <div style="font-weight: 600; margin-bottom: 4px;">${device.name}</div>
-            <div style="color: var(--text-secondary); font-size: 0.8rem;">${device.device_type}</div>
+            <div class="device-name-primary">${device.name}</div>
+            <div class="device-name-secondary">${device.device_type}</div>
         </div>
 
-        <div style="
-            font-family: 'Courier New', monospace;
-            font-weight: 600;
-            color: #2563eb;
-        ">${device.ip}</div>
+        <div class="device-ip-cell">${device.ip}</div>
 
         <div>
-            <span class="status-badge" style="
-                background: ${isOnline ? '#065f46' : '#7f1d1d'};
-                color: ${isOnline ? '#10b981' : '#ef4444'};
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                transition: all 0.3s ease;
-            ">${device.status}</span>
+            <span class="status-badge ${isOnline ? 'status-badge--up' : 'status-badge--down'}">${device.status}</span>
         </div>
 
-        <div style="text-align: center;">
-            <span class="ospf-count" style="color: #d97706; font-weight: 600;">
+        <div class="ospf-count">
                 ${device.ospf_neighbors || 0}
-            </span>
         </div>
 
-        <div class="last-update" style="color: var(--text-secondary); font-size: 0.875rem;">
+        <div class="last-update">
             ${new Date().toLocaleTimeString()}
         </div>
 
-        <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
-            <button onclick="window.location.href='/devices/${device.id}'" style="
-                padding: 6px 10px; font-size: 0.78rem; background: #3b82f6; color: #fff;
-                border: none; border-radius: 4px; cursor: pointer;
-            ">Details</button>
+        <div class="device-actions">
+            <button onclick="window.location.href='/devices/${device.id}'" class="action-btn action-btn--details">Details</button>
 
-            <button onclick="manageInterface(${device.id}, 'eth0', 'disable', this)" style="
-                padding: 6px 10px; font-size: 0.78rem; background: #dc2626; color: #fff;
-                border: none; border-radius: 4px; cursor: pointer;
-            ">Disable</button>
+            <button onclick="manageInterface(${device.id}, 'eth0', 'disable', this)" class="action-btn action-btn--disable">Disable</button>
 
-            <button onclick="manageInterface(${device.id}, 'eth0', 'enable', this)" style="
-                padding: 6px 10px; font-size: 0.78rem; background: #059669; color: #fff;
-                border: none; border-radius: 4px; cursor: pointer;
-            ">Enable</button>
+            <button onclick="manageInterface(${device.id}, 'eth0', 'enable', this)" class="action-btn action-btn--enable">Enable</button>
 
-            <button onclick="manageInterface(${device.id}, 'eth0', 'reset', this)" style="
-                padding: 6px 10px; font-size: 0.78rem; background: #d97706; color: #fff;
-                border: none; border-radius: 4px; cursor: pointer;
-            ">Reset</button>
+            <button onclick="manageInterface(${device.id}, 'eth0', 'reset', this)" class="action-btn action-btn--reset">Reset</button>
 
-            <select id="test-type-${device.id}" style="
-                padding: 6px 8px;
-                font-size: 0.78rem;
-                border-radius: 4px;
-                border: 1px solid #4b5563;
-                background: #111827;
-                color: #e5e7eb;
-            ">
+            <select id="test-type-${device.id}" class="test-type-select">
                 <option value="full">Test: Full</option>
                 <option value="ping">Ping</option>
                 <option value="interfaces">Interfaces</option>
@@ -362,10 +257,7 @@ class NetworkDashboard {
                 ${isSwitch ? '<option value="routes">Routes</option>' : ''}
             </select>
 
-            <button onclick="runSelectedNetworkTest(${device.id}, this)" style="
-                padding: 6px 10px; font-size: 0.78rem; background: #2563eb; color: #fff;
-                border: none; border-radius: 4px; cursor: pointer;
-            ">Run Test</button>
+            <button onclick="runSelectedNetworkTest(${device.id}, this)" class="action-btn action-btn--test">Run Test</button>
         </div>
     </div>
     `;
@@ -375,29 +267,9 @@ class NetworkDashboard {
         const container = document.querySelector('.container');
         const statusDiv = document.createElement('div');
         statusDiv.innerHTML = `
-            <div style="
-                text-align: center; 
-                margin: 20px 0; 
-                padding: 15px; 
-                background: var(--bg-card); 
-                border-radius: 10px;
-                border: 2px solid var(--border-color);
-            ">
-                <span id="monitoring-status" style="
-                    display: inline-block;
-                    background: #10b981;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 25px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    margin-right: 20px;
-                ">🟢 Live Monitoring</span>
-                <span id="last-update" style="
-                    font-size: 14px;
-                    color: var(--text-secondary);
-                    font-weight: 500;
-                ">Initializing...</span>
+            <div class="monitoring-bar">
+                <span id="monitoring-status" class="monitoring-badge">🟢 Live Monitoring</span>
+                <span id="last-update" class="monitoring-timestamp">Initializing...</span>
             </div>
         `;
         container.appendChild(statusDiv);
@@ -446,19 +318,9 @@ function showDeviceTooltip(deviceId, x, y) {
     if (!device) return;
     
     const tooltip = document.createElement('div');
-    tooltip.style.cssText = `
-        position: fixed;
-        left: ${x}px;
-        top: ${y}px;
-        background: var(--card-bg-dark);
-        border: 1px solid var(--card-border);
-        border-radius: var(--border-radius);
-        padding: 15px;
-        color: var(--text-primary);
-        font-size: 0.875rem;
-        z-index: 1000;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    `;
+    tooltip.className = 'device-tooltip';
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
     
     tooltip.innerHTML = `
         <div style="font-weight: bold; margin-bottom: 8px;">${device.name}</div>
@@ -466,15 +328,7 @@ function showDeviceTooltip(deviceId, x, y) {
         <div>IP: ${device.ip}</div>
         <div>OSPF Neighbors: ${device.ospf_neighbors || 0}</div>
         <div style="margin-top: 10px;">
-            <button onclick="window.location.href='/devices/${device.id}'" style="
-                background: var(--primary-blue);
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 0.8rem;
-            ">View Details</button>
+            <button onclick="window.location.href='/devices/${device.id}'" class="action-btn action-btn--details">View Details</button>
         </div>
     `;
     
@@ -600,21 +454,8 @@ function showNotification(message, type = 'info') {
     existingNotifications.forEach(n => n.remove());
     
     const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-    `;
+    const typeClass = type === 'success' ? 'notification--success' : type === 'error' ? 'notification--error' : 'notification--info';
+    notification.className = `notification ${typeClass}`;
     notification.textContent = message;
     document.body.appendChild(notification);
     
@@ -712,14 +553,7 @@ function showTestOutput({ deviceId, testType, status, summary, output }) {
     if (!wrapper) {
         wrapper = document.createElement('div');
         wrapper.id = 'network-test-output-wrapper';
-        wrapper.style.cssText = `
-            margin-top: 16px;
-            background: #111827;
-            color: #e5e7eb;
-            border: 1px solid #374151;
-            border-radius: 8px;
-            padding: 12px;
-        `;
+        wrapper.className = 'test-output-wrapper';
 
         const container = document.querySelector('.device-table-container');
         if (container && container.parentNode) {
@@ -729,23 +563,15 @@ function showTestOutput({ deviceId, testType, status, summary, output }) {
         }
 
         wrapper.innerHTML = `
-            <div id="network-test-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;">
-                <div id="network-test-meta" style="font-size:12px;color:#93c5fd;"></div>
+            <div class="test-output-header">
+                <div id="network-test-meta" class="test-output-meta"></div>
                 <div style="display:flex;gap:8px;">
-                    <button id="copy-test-output-btn" style="padding:4px 8px;font-size:12px;background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:4px;cursor:pointer;">Copy Output</button>
-                    <button id="clear-test-output-btn" style="padding:4px 8px;font-size:12px;background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:4px;cursor:pointer;">Clear</button>
+                    <button id="copy-test-output-btn" class="test-output-btn">Copy Output</button>
+                    <button id="clear-test-output-btn" class="test-output-btn">Clear</button>
                 </div>
             </div>
-            <div id="network-test-summary" style="font-size:12px;margin-bottom:8px;"></div>
-            <pre id="network-test-output" style="
-                max-height: 320px;
-                overflow: auto;
-                white-space: pre-wrap;
-                margin: 0;
-                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-                font-size: 12px;
-                line-height: 1.4;
-            "></pre>
+            <div id="network-test-summary" class="test-output-summary"></div>
+            <pre id="network-test-output" class="test-output-pre"></pre>
         `;
 
         document.getElementById('copy-test-output-btn').addEventListener('click', async () => {
