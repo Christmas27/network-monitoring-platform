@@ -12,12 +12,22 @@ from app.services.interface_management import InterfaceManagement
 from app.services.vlan_management import VlanManagement
 from app.services.frr_client import FRRClient
 from app.services.ansible_client import AnsibleClient
+from app.services.drivers import FrrDriver, DriverRegistry
 
-# Initialize services
+# Initialize drivers and registry
 frr = FRRClient()
+frr_driver = FrrDriver(frr)
 ansible = AnsibleClient()
-device_service = DeviceManagement(frr, ansible)
-interface_service = InterfaceManagement(frr, ansible)
+
+registry = DriverRegistry()
+registry.register(1, "Router1", "frr-router1", "router", "10.10.1.10", frr_driver)
+registry.register(2, "Router2", "frr-router2", "router", "10.10.1.20", frr_driver)
+registry.register(3, "Switch1", "frr-switch1", "switch", "10.10.1.30", frr_driver)
+registry.register(4, "Switch2", "frr-switch2", "switch", "10.10.1.40", frr_driver)
+
+# Initialize services with registry
+device_service = DeviceManagement(registry, ansible)
+interface_service = InterfaceManagement(registry, ansible)
 vlan_service = VlanManagement(frr, ansible)
 
 app = FastAPI(title="Network Monitoring API Gateway")

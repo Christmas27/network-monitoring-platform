@@ -1,3 +1,0 @@
-1. minor issue: device details dont have dark mode
-2. need to manually start zebra in frr client
-3. cannot config save in the ansible/frr client

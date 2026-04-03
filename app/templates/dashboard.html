@@ -8,21 +8,25 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Skip to Content -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Dark Mode Toggle Button -->
-    <button class="theme-toggle" onclick="toggleTheme()">
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
         <span id="theme-icon">🌙</span>
     </button>
 
     <div class="container">
         <h1 style="text-align: center; margin-bottom: 20px; color: var(--text-primary);">Network Monitoring Dashboard</h1>
         
-        <!-- Add Navigation -->
-        <div class="nav-bar">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/topology" class="nav-link">🌐 Network Topology</a>
-        </div>
+        <!-- Navigation -->
+        <nav class="nav-bar" aria-label="Main navigation">
+            <a href="/" class="nav-link" aria-current="page">Dashboard</a>
+        </nav>
         
-        <div id="devices-grid"></div>
+        <main id="main-content">
+            <div id="devices-grid"></div>
+        </main>
     </div>
     
     <script src="{{ url_for('static', path='/js/utils.js') }}"></script>

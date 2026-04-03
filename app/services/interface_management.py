@@ -3,22 +3,24 @@ from datetime import datetime
 from uuid import uuid4
 from typing import Any, NoReturn
 
+from app.services.drivers.registry import DriverRegistry
+
 class InterfaceManagement:
-    def __init__(self, frr_client, ansible_client):
-        self.frr = frr_client
+    def __init__(self, registry: DriverRegistry, ansible_client):
+        self.registry = registry
         self.ansible = ansible_client
 
     def _get_container_name(self, device_id: int) -> str:
-        device_map = {
-            1: "frr-router1",
-            2: "frr-router2",
-            3: "frr-switch1",
-            4: "frr-switch2"
-        }
-        container_name = device_map.get(device_id)
-        if not container_name:
+        entry = self.registry.get(device_id)
+        if not entry:
             self._raise_not_found("Device not found", {"device_id": device_id}, status_code=400)
-        return container_name
+        return entry.container
+
+    def _get_driver(self, device_id: int):
+        entry = self.registry.get(device_id)
+        if not entry:
+            self._raise_not_found("Device not found", {"device_id": device_id}, status_code=400)
+        return entry.driver
 
     def _error_detail(self, error_type: str, message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         return {
@@ -124,19 +126,17 @@ class InterfaceManagement:
     async def get_interfaces(self, device_id: int):
         """Get all interfaces for a device"""
         try:
-            container_name = self._get_container_name(device_id)
+            entry = self.registry.get(device_id)
+            if not entry:
+                self._raise_not_found("Device not found", {"device_id": device_id}, status_code=400)
             
-            # Get interface details from FRR
-            interfaces = await self.frr.get_interface_details(container_name)
-            
-            # Add device type info
-            device_type = "router" if "router" in container_name else "switch"
+            interfaces = await entry.driver.get_interfaces(entry.container)
             
             return {
                 "device_id": device_id,
-                "device_name": container_name.replace("frr-", "").upper(),
-                "device_type": device_type,
-                "container": container_name,
+                "device_name": entry.name,
+                "device_type": entry.device_type,
+                "container": entry.container,
                 "interfaces": interfaces,
                 "timestamp": datetime.now().isoformat()
             }
