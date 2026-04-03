@@ -109,16 +109,17 @@ class NetworkDashboard {
 
     showLoading() {
         this.devicesGrid.innerHTML = `
-            <div class="empty-state">
-                <div style="font-size: 2rem; margin-bottom: 10px;">🔄</div>
-                <div>Loading devices...</div>
+            <div class="empty-state" role="status" aria-live="polite">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading devices...</div>
             </div>`;
     }
 
     showError(message) {
         this.devicesGrid.innerHTML = `
-            <div class="error-state">
-                <div class="error-state__message">❌ ${message}</div>
+            <div class="error-state" role="alert">
+                <div class="error-state-icon">❌</div>
+                <div class="error-state__message">${message}</div>
                 <button onclick="location.reload()" class="retry-btn">🔄 Retry</button>
             </div>`;
     }

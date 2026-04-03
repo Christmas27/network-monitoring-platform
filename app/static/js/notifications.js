@@ -4,6 +4,8 @@ function showNotification(message, type) {
     
     const notification = document.createElement('div');
     notification.className = 'notification';
+    notification.setAttribute('role', 'alert');
+    notification.setAttribute('aria-live', 'assertive');
     
     const colors = {
         success: '#059669',

@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Topology</title>
+    <title>Device Details — Network Monitor</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 min-h-screen">
+    <!-- Skip to Content -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Dark Mode Toggle Button -->
-    <button class="theme-toggle" onclick="toggleTheme()">
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
         <span id="theme-icon">🌙</span>
     </button>
 
@@ -17,9 +20,11 @@
         <h1 class="text-3xl font-bold text-gray-800 mb-6">Device Details</h1>
         
         <!-- Navigation -->
-        <div class="nav-bar" style="text-align: left;">
+        <nav class="nav-bar" style="text-align: left;" aria-label="Breadcrumb">
             <a href="/" class="nav-link">← Back to Dashboard</a>
-        </div>
+        </nav>
+        
+        <main id="main-content">
         
         <!-- Device Status Card -->
         <div class="detail-section">
@@ -209,6 +214,8 @@
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `notification notification--${type === 'success' ? 'success' : 'error'}`;
+            notification.setAttribute('role', 'alert');
+            notification.setAttribute('aria-live', 'assertive');
             notification.textContent = message;
             document.body.appendChild(notification);
             
@@ -221,6 +228,7 @@
         }
         </script>
         {% endif %}
+        </main>
     </div>
     
     <script>
