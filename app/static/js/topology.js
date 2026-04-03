@@ -47,7 +47,7 @@ class NetworkTopology {
                 <h3 style="margin: 0 0 20px 0; color: var(--text-primary);">
                     🌐 Network Topology
                 </h3>
-                <svg width="${this.width}" height="${this.height}" style="border: 1px solid #374151; border-radius: 8px;">
+                <svg width="${this.width}" height="${this.height}" style="border: 1px solid var(--card-border); border-radius: 8px;">
                     <defs>
                         <!-- Connection line styles -->
                         <marker id="arrowhead" markerWidth="10" markerHeight="7" 
@@ -57,7 +57,7 @@ class NetworkTopology {
                         
                         <!-- OSPF area background -->
                         <pattern id="ospfPattern" patternUnits="userSpaceOnUse" width="20" height="20">
-                            <rect width="20" height="20" fill="#1f2937"/>
+                            <rect width="20" height="20" fill="var(--card-bg-dark)"/>
                             <circle cx="10" cy="10" r="1" fill="#3b82f6" opacity="0.3"/>
                         </pattern>
                     </defs>

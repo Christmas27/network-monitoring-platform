@@ -104,13 +104,13 @@
             
             <!-- Switch Stats -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <div style="text-align: center; padding: 15px; background: #374151; border-radius: 8px;">
+                <div style="text-align: center; padding: 15px; background: var(--surface-header); border-radius: 8px;">
                     <div style="color: var(--text-secondary); font-size: 0.875rem;">Physical Ports</div>
                     <div style="color: var(--primary-blue); font-size: 1.5rem; font-weight: bold;">
                         {{ device.switch_info.port_count if device.switch_info else 0 }}
                     </div>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #374151; border-radius: 8px;">
+                <div style="text-align: center; padding: 15px; background: var(--surface-header); border-radius: 8px;">
                     <div style="color: var(--text-secondary); font-size: 0.875rem;">VLANs Configured</div>
                     <div style="color: var(--success-green); font-size: 1.5rem; font-weight: bold;">
                         {{ device.vlans|length }}
@@ -124,7 +124,7 @@
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; background: var(--bg-primary);">
                         <thead>
-                            <tr style="background: #4b5563;">
+                            <tr style="background: var(--surface-columns);">
                                 <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">VLAN ID</th>
                                 <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">Interface</th>
                                 <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); color: var(--text-primary);">Status</th>
@@ -318,5 +318,6 @@
                 document.getElementById('routes-table').innerHTML = '<tr><td class="px-4 py-2" colspan="4">Error loading routing table</td></tr>';
             });
     </script>
+    <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
 </body>
 </html>
