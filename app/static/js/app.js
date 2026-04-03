@@ -100,8 +100,7 @@ class NetworkDashboard {
                 if (statusIcon) statusIcon.textContent = device.status === 'UP' ? '🟢' : '🔴';
                 if (statusBadge) {
                     statusBadge.textContent = device.status;
-                    statusBadge.style.background = device.status === 'UP' ? '#065f46' : '#7f1d1d';
-                    statusBadge.style.color = device.status === 'UP' ? '#10b981' : '#ef4444';
+                    statusBadge.className = `status-badge ${device.status === 'UP' ? 'status-badge--up' : 'status-badge--down'}`;
                 }
                 if (ospfCount) ospfCount.textContent = device.ospf_neighbors || 0;
             }
