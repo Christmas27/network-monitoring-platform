@@ -24,8 +24,8 @@
     --surface-header: #f3f4f6;
     --surface-columns: #e5e7eb;
     --surface-hover: #f9fafb;
-    --surface-code: #1e293b;
-    --surface-code-text: #e2e8f0;
+    --surface-code: #f1f5f9;
+    --surface-code-text: #1e293b;
     --surface-code-border: #cbd5e1;
     --input-bg: #f9fafb;
     --input-text: #374151;
@@ -793,7 +793,7 @@ svg text { fill: var(--text-primary) !important; }
    ============================================ */
 .config-pre {
     background: var(--surface-code);
-    color: var(--success-green);
+    color: var(--surface-code-text);
     padding: 16px;
     border-radius: var(--border-radius);
     overflow-x: auto;
@@ -830,6 +830,186 @@ svg text { fill: var(--text-primary) !important; }
 
 .detail-table tbody tr:hover {
     background: var(--surface-hover);
+}
+
+/* ============================================
+   Device Details — ACL Management
+   ============================================ */
+.acl-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    .acl-panel { grid-template-columns: 1fr; }
+}
+
+.acl-form-group {
+    background: var(--card-bg-dark);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 20px;
+}
+
+.acl-form-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.acl-form-row {
+    margin-bottom: 14px;
+}
+
+.acl-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.acl-hint {
+    font-weight: 400;
+    opacity: 0.7;
+}
+
+.acl-input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: border-color 0.15s;
+}
+
+.acl-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.acl-textarea {
+    font-family: 'Courier New', Courier, monospace;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.acl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+}
+
+.acl-btn:hover { opacity: 0.9; }
+.acl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.acl-btn--apply  { background: var(--success-green); }
+.acl-btn--remove { background: var(--danger-red); }
+
+.acl-result {
+    margin-top: 20px;
+}
+
+.acl-result-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.acl-hint-link {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+/* ACL Syntax Guide (collapsible) */
+.acl-guide {
+    margin-top: 20px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.acl-guide-summary {
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    background: var(--card-bg-dark);
+    cursor: pointer;
+    list-style: none;
+}
+
+.acl-guide-summary::-webkit-details-marker { display: none; }
+
+.acl-guide-summary::before {
+    content: '▶ ';
+    font-size: 0.75rem;
+    margin-right: 6px;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+
+.acl-guide[open] > .acl-guide-summary::before {
+    transform: rotate(90deg);
+}
+
+.acl-guide-body {
+    padding: 16px 20px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.acl-guide-body h4 {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+
+.acl-guide-body h4:first-of-type { margin-top: 12px; }
+
+.acl-guide-intro {
+    margin-bottom: 4px;
+}
+
+.acl-guide-table td.font-mono {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+}
+
+.acl-guide-list {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.acl-guide-list li {
+    margin-bottom: 4px;
+}
+
+.acl-guide-list code {
+    background: var(--surface-code);
+    color: var(--surface-code-text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.8125rem;
 }
 
 /* ============================================

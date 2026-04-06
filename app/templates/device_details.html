@@ -93,6 +93,118 @@
             </div>
         </div>
         
+        <!-- ACL Management -->
+        <div class="detail-section">
+            <h2>ACL Management</h2>
+            <div class="acl-panel">
+                <!-- Apply ACL Form -->
+                <div class="acl-form-group">
+                    <h3 class="acl-form-title">Apply ACL</h3>
+                    <form id="acl-apply-form" class="acl-form" onsubmit="applyACL(event)">
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-apply-interface">Interface</label>
+                            <select id="acl-apply-interface" class="acl-input" required>
+                                <option value="">Select interface...</option>
+                            </select>
+                        </div>
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-apply-direction">Direction</label>
+                            <select id="acl-apply-direction" class="acl-input" required>
+                                <option value="in">Inbound (in)</option>
+                                <option value="out">Outbound (out)</option>
+                            </select>
+                        </div>
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-apply-name">ACL Name</label>
+                            <input type="text" id="acl-apply-name" class="acl-input" placeholder="e.g. LAB-IN" required>
+                        </div>
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-apply-lines">
+                                ACL Rules <span class="acl-hint">(one rule per line — <a href="#acl-guide" class="acl-hint-link">syntax guide below</a>)</span>
+                            </label>
+                            <textarea id="acl-apply-lines" class="acl-input acl-textarea" rows="4"
+                                placeholder="tcp dport 22 accept&#10;tcp dport {80, 443} accept&#10;ip saddr 192.168.1.0/24 drop&#10;drop" required></textarea>
+                        </div>
+                        <button type="submit" class="acl-btn acl-btn--apply" id="acl-apply-btn">Apply ACL</button>
+                    </form>
+                </div>
+
+                <!-- Remove ACL Form -->
+                <div class="acl-form-group">
+                    <h3 class="acl-form-title">Remove ACL</h3>
+                    <form id="acl-remove-form" class="acl-form" onsubmit="removeACL(event)">
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-remove-interface">Interface</label>
+                            <select id="acl-remove-interface" class="acl-input" required>
+                                <option value="">Select interface...</option>
+                            </select>
+                        </div>
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-remove-direction">Direction</label>
+                            <select id="acl-remove-direction" class="acl-input" required>
+                                <option value="in">Inbound (in)</option>
+                                <option value="out">Outbound (out)</option>
+                            </select>
+                        </div>
+                        <div class="acl-form-row">
+                            <label class="acl-label" for="acl-remove-name">ACL Name</label>
+                            <input type="text" id="acl-remove-name" class="acl-input" placeholder="e.g. LAB-IN" required>
+                        </div>
+                        <button type="submit" class="acl-btn acl-btn--remove" id="acl-remove-btn">Remove ACL</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ACL Result Display -->
+            <div id="acl-result" class="acl-result" style="display:none;">
+                <h3 class="acl-result-title">Result</h3>
+                <pre id="acl-result-content" class="config-pre"></pre>
+            </div>
+
+            <!-- ACL Syntax Guide -->
+            <details id="acl-guide" class="acl-guide">
+                <summary class="acl-guide-summary">nftables Rule Syntax Guide</summary>
+                <div class="acl-guide-body">
+                    <p class="acl-guide-intro">
+                        This platform uses <strong>nftables</strong> (Linux kernel packet filter) instead of traditional Cisco-style ACLs.
+                        Each rule is a single nftables match/action fragment. The system automatically wraps it with the correct table, chain, interface binding, and comment tag.
+                    </p>
+                    <h4>Common Rule Examples</h4>
+                    <table class="detail-table acl-guide-table">
+                        <thead>
+                            <tr><th>Rule</th><th>What It Does</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="font-mono">tcp dport 22 accept</td><td>Allow SSH</td></tr>
+                            <tr><td class="font-mono">tcp dport {80, 443} accept</td><td>Allow HTTP and HTTPS</td></tr>
+                            <tr><td class="font-mono">udp dport 53 accept</td><td>Allow DNS</td></tr>
+                            <tr><td class="font-mono">icmp type echo-request accept</td><td>Allow ping</td></tr>
+                            <tr><td class="font-mono">ip saddr 10.10.1.0/24 accept</td><td>Allow traffic from a subnet</td></tr>
+                            <tr><td class="font-mono">ip saddr 192.168.1.100 drop</td><td>Block a specific host</td></tr>
+                            <tr><td class="font-mono">tcp dport 22 ip saddr 10.10.1.0/24 accept</td><td>Allow SSH from a subnet only</td></tr>
+                            <tr><td class="font-mono">drop</td><td>Drop everything else (default deny)</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Key Differences from Cisco ACLs</h4>
+                    <ul class="acl-guide-list">
+                        <li><code>accept</code> / <code>drop</code> instead of <code>permit</code> / <code>deny</code></li>
+                        <li>Protocol comes <strong>before</strong> the port: <code>tcp dport 80</code> not <code>port 80 tcp</code></li>
+                        <li>Use curly braces for multiple ports: <code>tcp dport {22, 80, 443}</code></li>
+                        <li>CIDR notation for subnets: <code>ip saddr 10.0.0.0/8</code></li>
+                        <li>Rules are evaluated top-to-bottom — put <code>drop</code> last for default deny</li>
+                    </ul>
+
+                    <h4>How It Works Internally</h4>
+                    <p>
+                        Rules are applied via an Ansible playbook that runs <code>nft</code> commands inside the device container.
+                        Each ACL is tagged with a comment (e.g., <code>nm_acl_LAB-IN</code>) for idempotent removal.
+                        Rules are added to the <code>inet nm_acl</code> table under an <code>input</code> or <code>output</code> chain depending on direction.
+                    </p>
+                </div>
+            </details>
+        </div>
+
         <!-- Switch Details -->
         {% if device.is_switch %}
         <div class="switch-section">
@@ -308,6 +420,136 @@
             .catch(error => {
                 document.getElementById('routes-table').innerHTML = '<tr><td colspan="4">Error loading routing table</td></tr>';
             });
+
+        // --- ACL Management ---
+        function populateACLInterfaces(interfaces) {
+            const selects = [
+                document.getElementById('acl-apply-interface'),
+                document.getElementById('acl-remove-interface')
+            ];
+            selects.forEach(sel => {
+                // Keep the placeholder option
+                sel.innerHTML = '<option value="">Select interface...</option>';
+                interfaces.forEach(iface => {
+                    const opt = document.createElement('option');
+                    opt.value = iface.name;
+                    opt.textContent = `${iface.name} (${iface.status})`;
+                    sel.appendChild(opt);
+                });
+            });
+        }
+
+        // Populate interface dropdowns after interfaces load
+        fetch(`/api/devices/${deviceId}/interfaces`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.interfaces && data.interfaces.length > 0) {
+                    populateACLInterfaces(data.interfaces);
+                }
+            });
+
+        function showACLResult(data) {
+            const container = document.getElementById('acl-result');
+            const content = document.getElementById('acl-result-content');
+            container.style.display = 'block';
+            content.textContent = JSON.stringify(data, null, 2);
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function setACLBtnLoading(btn, loading) {
+            btn.disabled = loading;
+            btn.textContent = loading ? 'Processing...' : btn.dataset.label;
+        }
+
+        // Store original labels
+        document.addEventListener('DOMContentLoaded', () => {
+            const applyBtn = document.getElementById('acl-apply-btn');
+            const removeBtn = document.getElementById('acl-remove-btn');
+            applyBtn.dataset.label = applyBtn.textContent;
+            removeBtn.dataset.label = removeBtn.textContent;
+        });
+
+        function applyACL(event) {
+            event.preventDefault();
+            const btn = document.getElementById('acl-apply-btn');
+            const iface = document.getElementById('acl-apply-interface').value;
+            const direction = document.getElementById('acl-apply-direction').value;
+            const aclName = document.getElementById('acl-apply-name').value.trim();
+            const linesRaw = document.getElementById('acl-apply-lines').value.trim();
+
+            if (!iface || !aclName || !linesRaw) return;
+
+            const acl_lines = linesRaw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (acl_lines.length === 0) return;
+
+            setACLBtnLoading(btn, true);
+            fetch(`/api/devices/${deviceId}/acl/apply`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interface: iface, direction, acl_name: aclName, acl_lines: acl_lines })
+            })
+            .then(r => r.json())
+            .then(data => {
+                showACLResult(data);
+                const ok = data.success && data.final_status === 'PASSED';
+                showNotification(
+                    ok ? `ACL "${aclName}" applied successfully` : `ACL apply failed — check result`,
+                    ok ? 'success' : 'error'
+                );
+            })
+            .catch(err => {
+                showACLResult({ error: err.message });
+                showNotification('Error applying ACL', 'error');
+            })
+            .finally(() => setACLBtnLoading(btn, false));
+        }
+
+        function removeACL(event) {
+            event.preventDefault();
+            const btn = document.getElementById('acl-remove-btn');
+            const iface = document.getElementById('acl-remove-interface').value;
+            const direction = document.getElementById('acl-remove-direction').value;
+            const aclName = document.getElementById('acl-remove-name').value.trim();
+
+            if (!iface || !aclName) return;
+
+            if (!confirm(`Remove ACL "${aclName}" from ${iface} (${direction})?`)) return;
+
+            setACLBtnLoading(btn, true);
+            fetch(`/api/devices/${deviceId}/acl/remove`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interface: iface, direction, acl_name: aclName })
+            })
+            .then(r => r.json())
+            .then(data => {
+                showACLResult(data);
+                const ok = data.success && data.final_status === 'PASSED';
+                showNotification(
+                    ok ? `ACL "${aclName}" removed successfully` : `ACL remove failed — check result`,
+                    ok ? 'success' : 'error'
+                );
+            })
+            .catch(err => {
+                showACLResult({ error: err.message });
+                showNotification('Error removing ACL', 'error');
+            })
+            .finally(() => setACLBtnLoading(btn, false));
+        }
+
+        // Notification helper (reuse if already defined above for switches)
+        if (typeof showNotification === 'undefined') {
+            function showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification notification--${type === 'success' ? 'success' : 'error'}`;
+                notification.setAttribute('role', 'alert');
+                notification.setAttribute('aria-live', 'assertive');
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                requestAnimationFrame(() => { notification.style.transform = 'translateX(0)'; });
+                setTimeout(() => notification.remove(), 3000);
+            }
+        }
     </script>
     <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
 </body>

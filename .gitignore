@@ -56,4 +56,5 @@ PROJECT_CONTEXT.md
 error.txt
 GIT.md
 Future Develop Plan.md
-PROJECT_CONTEXT.md
+# Tests (private)
+tests/

@@ -4,12 +4,23 @@ from fastapi.templating import Jinja2Templates
 from datetime import datetime
 from typing import Any, NoReturn
 
+from app.services.drivers.registry import DriverRegistry
+
 templates = Jinja2Templates(directory="app/templates")
 
 class DeviceManagement:
-    def __init__(self, frr_client, ansible_client):
-        self.frr = frr_client
+    def __init__(self, registry: DriverRegistry, ansible_client):
+        self.registry = registry
         self.ansible = ansible_client
+
+    # ------------------------------------------------------------------
+    # Lookup helper (replaces duplicated device_map dicts)
+    # ------------------------------------------------------------------
+    def _resolve(self, device_id: int):
+        entry = self.registry.get(device_id)
+        if not entry:
+            self._raise_not_found("Device not found", {"device_id": device_id})
+        return entry
 
     def _error_detail(self, error_type: str, message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         return {
@@ -31,40 +42,32 @@ class DeviceManagement:
         """Get all devices with their status"""
         try:
             devices = []
-            device_map = {
-                1: {"name": "Router1", "container": "frr-router1", "type": "router"},
-                2: {"name": "Router2", "container": "frr-router2", "type": "router"},
-                3: {"name": "Switch1", "container": "frr-switch1", "type": "switch"},
-                4: {"name": "Switch2", "container": "frr-switch2", "type": "switch"}
-            }
-            
-            for device_id, info in device_map.items():
+
+            for entry in self.registry.all_devices():
                 try:
-                    # Get device status
-                    device_info = await self.frr.get_device_info(info["container"])
+                    device_info = await entry.driver.get_device_info(entry.container)
                     
                     device = {
-                        "id": device_id,
-                        "name": info["name"],
-                        "ip": f"10.10.1.{device_id}0",
-                        "device_type": info["type"],
+                        "id": entry.device_id,
+                        "name": entry.name,
+                        "ip": entry.ip,
+                        "device_type": entry.device_type,
                         "status": device_info.get("status", "DOWN"),
-                        "container": info["container"],
+                        "container": entry.container,
                         "ospf_neighbors": len(device_info.get("ospf_neighbors", [])),
                         "last_seen": datetime.now().isoformat()
                     }
                     devices.append(device)
                     
                 except Exception as e:
-                    print(f"Error getting info for {info['container']}: {e}")
-                    # Add device with DOWN status if error
+                    print(f"Error getting info for {entry.container}: {e}")
                     devices.append({
-                        "id": device_id,
-                        "name": info["name"],
-                        "ip": f"10.10.1.{device_id}0",
-                        "device_type": info["type"],
+                        "id": entry.device_id,
+                        "name": entry.name,
+                        "ip": entry.ip,
+                        "device_type": entry.device_type,
                         "status": "DOWN",
-                        "container": info["container"],
+                        "container": entry.container,
                         "ospf_neighbors": 0,
                         "last_seen": datetime.now().isoformat()
                     })
@@ -80,57 +83,47 @@ class DeviceManagement:
             self._raise_execution(str(e), {"operation": "get_devices"})
     
     async def get_device_details(self, request: Request, device_id: int):
-        """Get device details page - FIXED METHOD SIGNATURE"""
+        """Get device details page"""
         try:
-            # Device mapping
-            device_map = {
-                1: "frr-router1", 
-                2: "frr-router2", 
-                3: "frr-switch1", 
-                4: "frr-switch2"
-            }
-            
-            container_name = device_map.get(device_id)
-            if not container_name:
-                self._raise_not_found("Device not found", {"device_id": device_id})
+            entry = self._resolve(device_id)
+            driver = entry.driver
             
             # Get device information
-            device_info = await self.frr.get_device_info(container_name)
-            device_config = await self.frr.get_running_config(container_name)
+            device_info = await driver.get_device_info(entry.container)
+            device_config = await driver.get_running_config(entry.container)
             
             # Build device data object
             device_data = {
                 "id": device_id,
-                "name": container_name.replace("frr-", "").upper(),
-                "ip": f"10.10.1.{device_id}0",
-                "container_name": container_name,
+                "name": entry.name,
+                "ip": entry.ip,
+                "container_name": entry.container,
                 "status": device_info.get("status", "DOWN"),
-                "is_router": "router" in container_name,
-                "is_switch": "switch" in container_name
+                "is_router": entry.device_type == "router",
+                "is_switch": entry.device_type == "switch"
             }
             
             # Add router-specific data
             if device_data["is_router"]:
                 device_data.update({
                     "ospf_neighbors": device_info.get("ospf_neighbors", []),
-                    "interfaces": await self.frr.get_interface_details(container_name),
-                    "routing_table": await self.frr.get_routing_table(container_name)
+                    "interfaces": await driver.get_interfaces(entry.container),
+                    "routing_table": await driver.get_routes(entry.container)
                 })
             
             # Add switch-specific data
             elif device_data["is_switch"]:
                 device_data.update({
-                    "vlans": await self.frr.get_device_vlans(container_name),
+                    "vlans": await driver.get_vlans(entry.container),
                     "ports": device_info.get("ports", []),
-                    "switch_info": await self.frr.get_switch_details(container_name)
+                    "switch_info": await self._get_switch_details(driver, entry.container)
                 })
             
-            # Return template with ALL required variables
             return templates.TemplateResponse("device_details.html", {
                 "request": request,
                 "device": device_data,
                 "config": device_config,
-                "device_type": "switch" if device_data["is_switch"] else "router",
+                "device_type": entry.device_type,
                 "device_id": device_id
             })
             
@@ -143,23 +136,12 @@ class DeviceManagement:
     async def get_device_config(self, device_id: int):
         """Get device running configuration"""
         try:
-            device_map = {
-                1: "frr-router1", 
-                2: "frr-router2", 
-                3: "frr-switch1", 
-                4: "frr-switch2"
-            }
-            
-            container_name = device_map.get(device_id)
-            if not container_name:
-                self._raise_not_found("Device not found", {"device_id": device_id})
-            
-            # Get running config from FRR
-            config = await self.frr.get_running_config(container_name)
+            entry = self._resolve(device_id)
+            config = await entry.driver.get_running_config(entry.container)
             
             return {
                 "device_id": device_id,
-                "container": container_name,
+                "container": entry.container,
                 "config": config,
                 "timestamp": datetime.now().isoformat()
             }
@@ -172,23 +154,12 @@ class DeviceManagement:
     async def get_device_routes(self, device_id: int):
         """Get device routing table"""
         try:
-            device_map = {
-                1: "frr-router1", 
-                2: "frr-router2", 
-                3: "frr-switch1", 
-                4: "frr-switch2"
-            }
-            
-            container_name = device_map.get(device_id)
-            if not container_name:
-                self._raise_not_found("Device not found", {"device_id": device_id})
-            
-            # Get routing table from FRR
-            routes = await self.frr.get_routing_table(container_name)
+            entry = self._resolve(device_id)
+            routes = await entry.driver.get_routes(entry.container)
             
             return {
                 "device_id": device_id,
-                "container": container_name,
+                "container": entry.container,
                 "routes": routes,
                 "timestamp": datetime.now().isoformat()
             }
@@ -199,13 +170,11 @@ class DeviceManagement:
             self._raise_execution(str(e), {"operation": "get_device_routes", "device_id": device_id})
     
     async def get_device_ospf(self, device_id: int):
-        """Get OSPF neighbors (for routers)"""
+        """Get OSPF neighbors"""
         try:
-            # Only routers have OSPF
-            router_map = {1: "frr-router1", 2: "frr-router2"}
+            entry = self._resolve(device_id)
             
-            container_name = router_map.get(device_id)
-            if not container_name:
+            if entry.device_type != "router":
                 return {
                     "device_id": device_id,
                     "ospf_neighbors": [],
@@ -213,13 +182,12 @@ class DeviceManagement:
                     "timestamp": datetime.now().isoformat()
                 }
             
-            # Get device info which includes OSPF neighbors
-            device_info = await self.frr.get_device_info(container_name)
+            neighbors = await entry.driver.get_ospf_neighbors(entry.container)
             
             return {
                 "device_id": device_id,
-                "container": container_name,
-                "ospf_neighbors": device_info.get("ospf_neighbors", []),
+                "container": entry.container,
+                "ospf_neighbors": neighbors,
                 "timestamp": datetime.now().isoformat()
             }
             
@@ -231,16 +199,7 @@ class DeviceManagement:
     async def run_network_tests(self, device_id: int, test_type: str = "full"):
         """Run network tests on a device"""
         try:
-            device_map = {
-                1: "frr-router1",
-                2: "frr-router2",
-                3: "frr-switch1",
-                4: "frr-switch2",
-            }
-            
-            container_name = device_map.get(device_id)
-            if not container_name:
-                self._raise_not_found("Device not found", {"device_id": device_id})
+            entry = self._resolve(device_id)
 
             allowed = ["full", "ping", "interfaces", "ospf", "routes"]
             if test_type not in allowed:
@@ -252,7 +211,7 @@ class DeviceManagement:
             result = await self.ansible.run_network_test_playbook(
                 "connectivity-test.yml",
                 {
-                    "device_container": container_name,
+                    "device_container": entry.container,
                     "test_operation": test_type
                 }
             )
@@ -260,7 +219,7 @@ class DeviceManagement:
             return {
                 "success": result.get("success", False),
                 "device_id": device_id,
-                "container": container_name,
+                "container": entry.container,
                 "test_type": test_type,
                 "summary": result.get("summary", {}),
                 "result": result,
@@ -273,3 +232,13 @@ class DeviceManagement:
                 str(e),
                 {"operation": "run_network_tests", "device_id": device_id, "test_type": test_type}
             )
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+    async def _get_switch_details(self, driver, container: str) -> dict[str, Any]:
+        """Get switch-specific details via the driver's underlying client."""
+        # FrrDriver exposes .frr for switch-specific methods not yet in the interface
+        if hasattr(driver, 'frr') and hasattr(driver.frr, 'get_switch_details'):
+            return await driver.frr.get_switch_details(container)
+        return {}
