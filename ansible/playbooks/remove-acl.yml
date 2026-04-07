@@ -1,0 +1,71 @@
+---
+- name: Remove nftables ACL on Linux data plane
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    container_name: "{{ device_container }}"
+    interface_name: "{{ interface }}"
+    acl_dir: "{{ direction }}"
+    acl_name_var: "{{ acl_name }}"
+
+  tasks:
+    - name: Validate interface exists
+      shell: docker exec {{ container_name }} ip link show {{ interface_name }}
+      register: iface_exists
+      failed_when: iface_exists.rc != 0
+
+    - name: Validate nft command exists
+      shell: docker exec {{ container_name }} sh -lc "command -v nft"
+      register: nft_exists
+      failed_when: nft_exists.rc != 0
+
+    - name: Set chain and ACL tag by direction
+      set_fact:
+        acl_chain: "{{ 'input' if acl_dir == 'in' else 'output' }}"
+        acl_tag: "nm_acl_{{ acl_name_var }}"
+
+    - name: Collect handles for ACL tag
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "if nft list table inet nm_acl >/dev/null 2>&1; then
+           nft -a list chain inet nm_acl {{ acl_chain }} |
+           grep 'nm_acl_{{ acl_name_var }}' |
+           sed -n 's/.*# handle \([0-9][0-9]*\)$/\1/p'
+         fi"
+      register: acl_handles
+      changed_when: false
+      failed_when: false
+
+    - name: Delete ACL rules by handle
+      shell: docker exec {{ container_name }} sh -lc "nft delete rule inet nm_acl {{ acl_chain }} handle {{ item }}"
+      loop: "{{ acl_handles.stdout_lines }}"
+      when: acl_handles.stdout_lines | length > 0
+      register: delete_results
+
+    - name: Verify no rules remain for ACL tag
+      shell: >
+        docker exec {{ container_name }} sh -lc
+        "nft -a list chain inet nm_acl {{ acl_chain }} | grep -c '{{ acl_tag }}' || true"
+      register: remaining_acl_rules
+      changed_when: false
+
+    - name: Fail if ACL tag still present
+      fail:
+        msg: "ACL tag {{ acl_tag }} still present after removal on {{ container_name }}"
+      when: (remaining_acl_rules.stdout | int) > 0
+
+    - name: Verify chain after removal
+      shell: docker exec {{ container_name }} sh -lc "nft list chain inet nm_acl {{ acl_chain }} || true"
+      register: verify_acl
+      changed_when: false
+
+    - name: Show removal verification
+      debug:
+        msg: |
+          ACL {{ acl_name_var }} removed from {{ container_name }}
+          Direction: {{ acl_dir }}
+          Chain: {{ acl_chain }}
+
+          Chain state:
+          {{ verify_acl.stdout }}

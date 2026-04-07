@@ -1,0 +1,1105 @@
+/* ============================================
+   Design Tokens — Single Source of Truth
+   ============================================ */
+:root {
+    /* Layout colors (light mode defaults) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: #ffffff;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --shadow: rgba(0, 0, 0, 0.1);
+
+    /* Accent palette */
+    --primary-blue: #2563eb;
+    --success-green: #059669;
+    --danger-red: #dc2626;
+    --warning-orange: #d97706;
+    --purple: #7c3aed;
+
+    /* Surface colors (used by JS-rendered components & dashboard) */
+    --card-bg-dark: #ffffff;
+    --card-border: #e5e7eb;
+    --surface-header: #f3f4f6;
+    --surface-columns: #e5e7eb;
+    --surface-hover: #f9fafb;
+    --surface-code: #f1f5f9;
+    --surface-code-text: #1e293b;
+    --surface-code-border: #cbd5e1;
+    --input-bg: #f9fafb;
+    --input-text: #374151;
+    --input-border: #d1d5db;
+
+    /* Shared utilities */
+    --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --transition-fast: all 0.15s ease;
+    --border-radius: 8px;
+    --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.5);
+}
+
+[data-theme="dark"] {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --border-color: #475569;
+    --shadow: rgba(0, 0, 0, 0.3);
+
+    --danger-red: #f87171;
+    --warning-orange: #fbbf24;
+    --success-green: #34d399;
+
+    --card-bg-dark: #1f2937;
+    --card-border: #374151;
+    --surface-header: #374151;
+    --surface-columns: #4b5563;
+    --surface-hover: #374151;
+    --surface-code: #111827;
+    --surface-code-text: #e5e7eb;
+    --surface-code-border: #374151;
+    --input-bg: #111827;
+    --input-text: #e5e7eb;
+    --input-border: #4b5563;
+}
+
+/* ============================================
+   Reset & Base
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ============================================
+   Accessibility — Focus & Motion
+   ============================================ */
+:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+.action-btn:focus-visible,
+.btn:focus-visible,
+.theme-toggle:focus-visible,
+.delete-vlan-btn:focus-visible,
+.retry-btn:focus-visible,
+.test-output-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+a:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+select:focus-visible,
+input:focus-visible {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: var(--focus-ring);
+}
+
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    background: var(--primary-blue);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    z-index: 10000;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    top: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================
+   Layout
+   ============================================ */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--bg-primary);
+}
+
+h1 {
+    text-align: center;
+    color: var(--text-primary);
+    margin-bottom: 30px;
+    font-size: 2.5rem;
+    font-weight: 300;
+}
+
+/* ============================================
+   Device Grid & Cards
+   ============================================ */
+#devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.device-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: 0 2px 10px var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.device-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px var(--shadow);
+}
+
+.device-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.device-ip {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.device-status {
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-up {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-down {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+[data-theme="dark"] .status-up {
+    background-color: #065f46;
+    color: #10b981;
+}
+
+[data-theme="dark"] .status-down {
+    background-color: #7f1d1d;
+    color: #ef4444;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.btn {
+    border: none;
+    padding: 10px 16px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-primary { background: var(--primary-blue); color: white; }
+.btn-success { background: var(--success-green); color: white; }
+.btn-danger  { background: var(--danger-red); color: white; }
+
+.btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.detail-button {
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+.detail-button:hover { background: #2563eb; }
+.detail-button:active { background: #1d4ed8; }
+
+/* ============================================
+   Loading & Feedback States
+   ============================================ */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+}
+
+.loading-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.btn-loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Dark-Mode Toggle (shared across all pages)
+   ============================================ */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 15px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* ============================================
+   Tailwind Dark-Mode Overrides
+   ============================================ */
+.bg-gray-100    { background-color: var(--bg-primary) !important; }
+.bg-gray-50     { background-color: var(--bg-secondary) !important; }
+.bg-white       { background-color: var(--bg-card) !important; }
+.text-gray-800  { color: var(--text-primary) !important; }
+.text-gray-600  { color: var(--text-secondary) !important; }
+.border-gray-200 { border-color: var(--border-color) !important; }
+.shadow-md      { box-shadow: 0 4px 6px var(--shadow) !important; }
+
+svg text { fill: var(--text-primary) !important; }
+
+/* ============================================
+   Device Details — Switch Components
+   ============================================ */
+.vlan-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.vlan-status[data-status="up"]   { background: #d1fae5; color: #065f46; }
+.vlan-status[data-status="down"] { background: #fee2e2; color: #991b1b; }
+
+[data-theme="dark"] .vlan-status[data-status="up"]   { background: #065f46; color: #10b981; }
+[data-theme="dark"] .vlan-status[data-status="down"] { background: #7f1d1d; color: #ef4444; }
+
+.delete-vlan-btn {
+    background: var(--danger-red);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.delete-vlan-btn:hover { opacity: 0.85; }
+
+.port-card {
+    background: var(--surface-header);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    border-left: 4px solid #ef4444;
+}
+
+.port-card[data-status="up"]   { border-left-color: #10b981; }
+.port-card[data-status="down"] { border-left-color: #ef4444; }
+
+.port-status[data-status="up"]   { color: #10b981; }
+.port-status[data-status="down"] { color: #ef4444; }
+
+/* ============================================
+   Dashboard — Layout & Stats
+   ============================================ */
+.monitoring-dashboard {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--card-bg-dark);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.stat-value--blue    { color: var(--primary-blue); }
+.stat-value--green   { color: var(--success-green); }
+.stat-value--red     { color: var(--danger-red); }
+.stat-value--orange  { color: var(--warning-orange); }
+
+/* ============================================
+   Dashboard — Device Table
+   ============================================ */
+.device-table-container {
+    background: var(--card-bg-dark);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.table-header {
+    background: var(--surface-header);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.table-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.device-table-columns {
+    display: grid;
+    grid-template-columns: 40px 1fr 150px 120px 120px 180px 200px;
+    gap: 15px;
+    padding: 16px 20px;
+    background: var(--surface-columns);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.device-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 150px 120px 120px 180px 380px;
+    gap: 15px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--card-border);
+    transition: var(--transition-fast);
+    color: var(--text-primary);
+}
+
+.device-row:hover {
+    background: var(--surface-hover);
+}
+
+.status-icon {
+    font-size: 1.2rem;
+}
+
+.device-name-primary {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.device-name-secondary {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.device-ip-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.status-badge--up   { background: #d1fae5; color: #065f46; }
+.status-badge--down { background: #fee2e2; color: #991b1b; }
+
+[data-theme="dark"] .status-badge--up   { background: #065f46; color: #10b981; }
+[data-theme="dark"] .status-badge--down { background: #7f1d1d; color: #ef4444; }
+
+.ospf-count {
+    color: var(--warning-orange);
+    font-weight: 600;
+    text-align: center;
+}
+
+.last-update {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   Dashboard — Action Buttons
+   ============================================ */
+.device-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.action-btn:hover { opacity: 0.85; }
+
+.action-btn--details { background: #3b82f6; }
+.action-btn--disable { background: #dc2626; }
+.action-btn--enable  { background: #059669; }
+.action-btn--reset   { background: #d97706; }
+.action-btn--test    { background: #2563eb; }
+
+.test-type-select {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--input-text);
+}
+
+/* ============================================
+   Dashboard — Feedback & Status
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.empty-state-text {
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+.empty-state-hint {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.error-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.error-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.error-state__message {
+    color: var(--danger-red);
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.retry-btn {
+    background: var(--primary-blue);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.retry-btn:hover { opacity: 0.9; }
+
+.monitoring-bar {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+}
+
+.monitoring-badge {
+    display: inline-block;
+    background: #10b981;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-right: 20px;
+}
+
+.monitoring-timestamp {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* ============================================
+   Dashboard — Notification Toast
+   ============================================ */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    color: white;
+    border-radius: var(--border-radius);
+    z-index: 10000;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.notification--success { background: #10b981; }
+.notification--error   { background: #ef4444; }
+.notification--info    { background: #3b82f6; }
+
+/* ============================================
+   Dashboard — Test Output Panel
+   ============================================ */
+.test-output-wrapper {
+    margin-top: 16px;
+    background: var(--surface-code);
+    color: var(--surface-code-text);
+    border: 1px solid var(--surface-code-border);
+    border-radius: var(--border-radius);
+    padding: 12px;
+}
+
+.test-output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.test-output-meta {
+    font-size: 12px;
+    color: var(--primary-blue);
+}
+
+.test-output-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: var(--card-bg-dark);
+    color: var(--surface-code-text);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.test-output-btn:hover { background: var(--surface-hover); }
+
+.test-output-summary {
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.test-output-pre {
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* ============================================
+   Dashboard — Tooltip
+   ============================================ */
+.device-tooltip {
+    position: fixed;
+    background: var(--card-bg-dark);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   Shared — Navigation
+   ============================================ */
+.nav-bar {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.nav-link {
+    color: var(--primary-blue);
+    text-decoration: none;
+    margin: 0 15px;
+    font-weight: 600;
+}
+
+.nav-link:hover { text-decoration: underline; }
+
+/* ============================================
+   Device Details — Page Layout
+   ============================================ */
+.detail-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px var(--shadow);
+}
+
+.detail-section h2 {
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.detail-section h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.detail-section h4 {
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+}
+
+.detail-badge--up {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.detail-badge--up { background: #d1fae5; color: #065f46; }
+
+[data-theme="dark"] .detail-badge--up { background: #065f46; color: #10b981; }
+
+/* ============================================
+   Device Details — Config Display
+   ============================================ */
+.config-pre {
+    background: var(--surface-code);
+    color: var(--surface-code-text);
+    padding: 16px;
+    border-radius: var(--border-radius);
+    overflow-x: auto;
+    font-size: 0.875rem;
+    border: 1px solid var(--surface-code-border);
+}
+
+/* ============================================
+   Device Details — Data Tables
+   ============================================ */
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.detail-table thead {
+    background: var(--surface-columns);
+}
+
+.detail-table th {
+    padding: 12px 16px;
+    text-align: left;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.detail-table td {
+    padding: 12px 16px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-table tbody tr:hover {
+    background: var(--surface-hover);
+}
+
+/* ============================================
+   Device Details — ACL Management
+   ============================================ */
+.acl-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    .acl-panel { grid-template-columns: 1fr; }
+}
+
+.acl-form-group {
+    background: var(--card-bg-dark);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 20px;
+}
+
+.acl-form-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.acl-form-row {
+    margin-bottom: 14px;
+}
+
+.acl-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.acl-hint {
+    font-weight: 400;
+    opacity: 0.7;
+}
+
+.acl-input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: border-color 0.15s;
+}
+
+.acl-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.acl-textarea {
+    font-family: 'Courier New', Courier, monospace;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.acl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+}
+
+.acl-btn:hover { opacity: 0.9; }
+.acl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.acl-btn--apply  { background: var(--success-green); }
+.acl-btn--remove { background: var(--danger-red); }
+
+.acl-result {
+    margin-top: 20px;
+}
+
+.acl-result-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.acl-hint-link {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+/* ACL Syntax Guide (collapsible) */
+.acl-guide {
+    margin-top: 20px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.acl-guide-summary {
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    background: var(--card-bg-dark);
+    cursor: pointer;
+    list-style: none;
+}
+
+.acl-guide-summary::-webkit-details-marker { display: none; }
+
+.acl-guide-summary::before {
+    content: '▶ ';
+    font-size: 0.75rem;
+    margin-right: 6px;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+
+.acl-guide[open] > .acl-guide-summary::before {
+    transform: rotate(90deg);
+}
+
+.acl-guide-body {
+    padding: 16px 20px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.acl-guide-body h4 {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+
+.acl-guide-body h4:first-of-type { margin-top: 12px; }
+
+.acl-guide-intro {
+    margin-bottom: 4px;
+}
+
+.acl-guide-table td.font-mono {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+}
+
+.acl-guide-list {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.acl-guide-list li {
+    margin-bottom: 4px;
+}
+
+.acl-guide-list code {
+    background: var(--surface-code);
+    color: var(--surface-code-text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.8125rem;
+}
+
+/* ============================================
+   Device Details — Switch Section
+   ============================================ */
+.switch-section {
+    background: var(--card-bg-dark);
+    color: var(--text-primary);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--card-border);
+}
+
+.switch-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.switch-stat-box {
+    text-align: center;
+    padding: 15px;
+    background: var(--surface-header);
+    border-radius: var(--border-radius);
+}
+
+.switch-stat-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.switch-stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.switch-stat-value--blue   { color: var(--primary-blue); }
+.switch-stat-value--green  { color: var(--success-green); }
+
+.vlan-section { margin-bottom: 30px; }
+
+.vlan-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-primary);
+}
+
+.vlan-table thead tr {
+    background: var(--surface-columns);
+}
+
+.vlan-table th {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+.vlan-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.vlan-table .vlan-id    { color: var(--primary-blue); font-weight: bold; }
+.vlan-table .vlan-iface  { color: var(--text-primary); font-family: monospace; }
+.vlan-table .vlan-desc   { color: var(--text-secondary); }
+.vlan-table .vlan-ip     { color: var(--text-primary); font-family: monospace; }
+.vlan-table .vlan-empty  { padding: 20px; text-align: center; color: var(--text-secondary); }
+
+.port-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.port-card-name {
+    color: var(--text-primary);
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.port-card-detail {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.port-empty {
+    color: var(--text-secondary);
+    text-align: center;
+    grid-column: 1 / -1;
+}

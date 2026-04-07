@@ -6,9 +6,6 @@ services:
     container_name: frr-router1
     hostname: router1
     privileged: true
-    ports:
-      - "2601:161"   # SNMP
-      - "8001:8080"  # Web interface (if available)
     volumes:
       - ./frr-configs/router1:/etc/frr
     networks:
@@ -16,16 +13,12 @@ services:
         ipv4_address: 10.10.1.10
     cap_add:
       - NET_ADMIN
-      - SYS_ADMIN
 
   router2:
     image: frrouting/frr:latest
     container_name: frr-router2
     hostname: router2
     privileged: true
-    ports:
-      - "2602:161"   # SNMP
-      - "8002:8080"  # Web interface
     volumes:
       - ./frr-configs/router2:/etc/frr
     networks:
@@ -33,7 +26,48 @@ services:
         ipv4_address: 10.10.1.20
     cap_add:
       - NET_ADMIN
-      - SYS_ADMIN
+
+  frr-switch1:
+    build:
+      context: .
+      dockerfile: docker/frr-nft/Dockerfile
+    container_name: frr-switch1
+    hostname: switch1
+    privileged: true
+    volumes:
+      - ./frr-configs/switch1:/etc/frr
+    networks:
+      lab_network:
+        ipv4_address: 10.10.1.30
+      transit_net1:
+        ipv4_address: 172.16.10.2
+      transit_net2:
+        ipv4_address: 172.16.20.2
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "2631:2601"
+
+  frr-switch2:
+    build:
+      context: .
+      dockerfile: docker/frr-nft/Dockerfile
+    container_name: frr-switch2
+    hostname: switch2
+    privileged: true
+    volumes:
+      - ./frr-configs/switch2:/etc/frr
+    networks:
+      lab_network:
+        ipv4_address: 10.10.1.40
+      transit_net1:
+        ipv4_address: 172.16.10.3
+      transit_net2:
+        ipv4_address: 172.16.20.3
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "2632:2601"
 
 networks:
   lab_network:
@@ -41,3 +75,15 @@ networks:
     ipam:
       config:
         - subnet: 10.10.1.0/24
+
+  transit_net1:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.10.0/24
+
+  transit_net2:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.20.0/24

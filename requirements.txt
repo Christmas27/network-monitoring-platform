@@ -17,3 +17,4 @@ urllib3>=1.26.0            # HTTP client library
 
 # Development tools
 pytest>=7.0.0              # For testing
+ansible>=6.0.0            # For automation tasks

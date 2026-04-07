@@ -1,0 +1,29 @@
+---
+- name: Delete VLAN on FRR Switch
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: false
+  vars:
+    container_name: "{{ switch_container }}"
+    vlan_id: "{{ vlan_number }}"
+    
+  tasks:
+    - name: Delete VLAN {{ vlan_id }} on {{ container_name }}
+      shell: |
+        docker exec {{ container_name }} vtysh -c "
+        configure terminal
+        no interface vlan{{ vlan_id }}
+        "
+      register: vlan_result
+      
+    - name: Show VLAN deletion result
+      debug:
+        msg: "VLAN {{ vlan_id }} deleted from {{ container_name }}: {{ vlan_result.stdout }}"
+        
+    - name: Verify VLAN is removed
+      shell: |
+        docker exec {{ container_name }} vtysh -c "show interface brief"
+      register: verify_result
+      
+    - name: Display current VLANs
+      debug:
+        msg: "Current interfaces: {{ verify_result.stdout }}"
