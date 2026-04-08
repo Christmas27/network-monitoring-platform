@@ -56,5 +56,8 @@ PROJECT_CONTEXT.md
 error.txt
 GIT.md
 Future Develop Plan.md
+deploy.sh
+nm-spot-key.pem
+deploy manual.md
 # Tests (private)
 tests/
