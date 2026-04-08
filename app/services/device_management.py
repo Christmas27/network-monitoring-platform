@@ -119,13 +119,16 @@ class DeviceManagement:
                     "switch_info": await self._get_switch_details(driver, entry.container)
                 })
             
-            return templates.TemplateResponse("device_details.html", {
-                "request": request,
-                "device": device_data,
-                "config": device_config,
-                "device_type": entry.device_type,
-                "device_id": device_id
-            })
+            return templates.TemplateResponse(
+                request=request,
+                name="device_details.html",
+                context={
+                    "device": device_data,
+                    "config": device_config,
+                    "device_type": entry.device_type,
+                    "device_id": device_id,
+                },
+            )
             
         except HTTPException:
             raise
