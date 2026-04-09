@@ -2,6 +2,8 @@
 
 A full-stack network monitoring and automation platform built with FastAPI and containerised FRR (Free Range Routing) devices. Designed as a portfolio project targeting cloud and networking roles.
 
+Access the live demo: [http://13.212.150.108:8000](http://13.212.150.108:8000) (deployed on AWS EC2 Spot Instance, no custom domain)
+
 ## Features
 
 - **Real-time Dashboard** — Live device status with auto-refresh, dark/light theme toggle
